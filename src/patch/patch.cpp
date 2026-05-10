@@ -360,13 +360,13 @@ remove_nested_nodes(std::vector<ElementNode*>& nodes)
 {
     std::vector<ElementNode*> filtered;
     for (auto* node : nodes) {
-        const std::string& tag = base_pan(*node).info_tag;
+        const std::string tag = strip_prefix(base_pan(*node).info_tag);
         if (tag == "ROOT" || tag == "n_all") continue;
 
         bool is_desc = false;
         for (auto* other : nodes) {
             if (other == node) continue;
-            const std::string& otag = base_pan(*other).info_tag;
+            const std::string otag = strip_prefix(base_pan(*other).info_tag);
             if (otag == "ROOT" || otag == "n_all") continue;
             if (is_descendant_of(node, other)) { is_desc = true; break; }
         }
@@ -386,7 +386,7 @@ static void get_pic2s(ElementNode& node,
             per_pan.push_back(&child);
 
     std::sort(per_pan.begin(), per_pan.end(), [](ElementNode* a, ElementNode* b){
-        return base_pan(*a).info_tag < base_pan(*b).info_tag;
+        return strip_prefix(base_pan(*a).info_tag) < strip_prefix(base_pan(*b).info_tag);
     });
 
     for (auto* pic : per_pan) {
@@ -402,7 +402,7 @@ static void get_pic2s(ElementNode& node,
             pan2_children.push_back(&child);
 
     std::sort(pan2_children.begin(), pan2_children.end(), [](ElementNode* a, ElementNode* b){
-        return base_pan(*a).info_tag < base_pan(*b).info_tag;
+        return strip_prefix(base_pan(*a).info_tag) < strip_prefix(base_pan(*b).info_tag);
     });
 
     for (auto* pan : pan2_children)
@@ -547,21 +547,7 @@ void apply_patch(BLO& blo, const PatchDocument& patch)
     collect_pan2_parents_with_pic2(root, all_pan2);
 
     std::sort(all_pan2.begin(), all_pan2.end(), [](ElementNode* a, ElementNode* b){
-        const std::string& na = (a->type == ElementNode::Type::PAN2)
-            ? std::get<PAN2Node>(a->node).info_tag
-            : (a->type == ElementNode::Type::PIC2)
-                ? std::get<PIC2Node>(a->node).base.info_tag
-                : (a->type == ElementNode::Type::TBX2)
-                    ? std::get<TBX2Node>(a->node).base.info_tag
-                    : std::get<WIN2Node>(a->node).base.info_tag;
-        const std::string& nb = (b->type == ElementNode::Type::PAN2)
-            ? std::get<PAN2Node>(b->node).info_tag
-            : (b->type == ElementNode::Type::PIC2)
-                ? std::get<PIC2Node>(b->node).base.info_tag
-                : (b->type == ElementNode::Type::TBX2)
-                    ? std::get<TBX2Node>(b->node).base.info_tag
-                    : std::get<WIN2Node>(b->node).base.info_tag;
-        return na < nb;
+        return strip_prefix(base_pan(*a).info_tag) < strip_prefix(base_pan(*b).info_tag);
     });
 
     std::vector<ElementNode*> node_list = remove_nested_nodes(all_pan2);
