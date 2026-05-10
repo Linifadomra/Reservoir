@@ -67,7 +67,8 @@ static void load_blos_from_arc(const fs::path& arc_path,
                                 std::unordered_map<std::string, BLO>& blo_map)
 {
     auto arc_bytes = read_file(arc_path);
-    GCArc* arc = gc_arc_open_mem(arc_bytes.data(), arc_bytes.size());
+    auto decompressed = decompress_if_needed(arc_bytes.data(), arc_bytes.size());
+    GCArc* arc = gc_arc_open_mem(decompressed.data(), decompressed.size());
     if (!arc) {
         std::cerr << "failed to open arc: " << arc_path.filename() << "\n";
         return;
