@@ -3,7 +3,6 @@ import subprocess
 from pathlib import Path
 import shutil
 from diff_blo import diff_outputs
-
 sys.path.insert(0, str(Path(__file__).parent))
 from blo_editor import run_blo_editor
 
@@ -43,15 +42,21 @@ def run_cpp_tool():
     )
 
 def run_python_blos():
-    py_output  = TOOLS_DIR / "output-py"
-    done_file  = TOOLS_DIR / ".pydone"
+    layout_dir    = TOOLS_DIR / "game_data" / "files" / "res" / "Layout"
+    py_layout_dir = TOOLS_DIR / "game_data_py" / "files" / "res" / "Layout"
+    py_output     = TOOLS_DIR / "output-py"
+    done_file     = TOOLS_DIR / ".pydone"
 
     if done_file.exists():
-        print("Skipping Python BLO editor (already ran, delete .pydone to re-run). Note you will need to grab a new, fresh game_data folder")
+        print("Skipping Python BLO editor (already ran, delete .pydone to re-run).")
         return
 
+    if py_layout_dir.exists():
+        shutil.rmtree(py_layout_dir)
+    shutil.copytree(layout_dir, py_layout_dir)
+
     run_blo_editor(
-        TOOLS_DIR / "game_data" / "files" / "res" / "Layout",
+        py_layout_dir,
         TOOLS_DIR / "patches",
         py_output,
     )
@@ -59,10 +64,8 @@ def run_python_blos():
 
 # 1. Get the Python BLOs
 run_python_blos()
-
 # 2. Run the C++ CLI tool
 run_cpp_tool()
-
 # 3. Diff
 diff_outputs(
     TOOLS_DIR / "output-py",
