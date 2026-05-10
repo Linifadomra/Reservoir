@@ -96,11 +96,12 @@ static void load_blos_from_arc(const fs::path& arc_path,
         try {
             auto bytes = decompress_if_needed(static_cast<const uint8_t*>(raw), size);
             free(raw);
+            raw = nullptr;
             BLO blo  = parse_blo(bytes);
             blo.name = name;
             blo_map.emplace(to_lower(name), std::move(blo));
         } catch (const std::exception& e) {
-            free(raw);
+            if (raw) free(raw);
             std::cerr << "failed to parse " << name << ": " << e.what() << "\n";
         }
     }
