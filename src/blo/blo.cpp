@@ -31,7 +31,6 @@ static bool tag_eq(const uint8_t* d, size_t p, const char t[4]) {
 static INF1Section parse_inf1(const uint8_t* d, size_t& p)
 {
     INF1Section s;
-    p += 4;
     s.size   = rd_u32(d, p);
     s.width  = rd_u16(d, p);
     s.height = rd_u16(d, p);
