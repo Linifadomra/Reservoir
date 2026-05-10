@@ -11,7 +11,7 @@
 
 using json = nlohmann::json;
 
-using namespace Reservoir;
+namespace Reservoir {
 
 static PAN2Node& as_pan2(ElementNode& n) { return std::get<PAN2Node>(n.node); }
 static PIC2Node& as_pic2(ElementNode& n) { return std::get<PIC2Node>(n.node); }
@@ -620,3 +620,5 @@ PatchDocument parse_patch_document(const std::string& json_text)
 
     return doc;
 }
+
+} // namespace Reservoir
