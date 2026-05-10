@@ -5,15 +5,29 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(RESERVOIR_SHARED "Build Reservoir as a shared library" OFF)
+
 find_package(Confluence REQUIRED)
 
 ## == Library Targets == ##
-add_library(Reservoir
-    src/blo/blo.cpp
-    src/patch/patch.cpp
-    src/mat1/mat1.cpp
-    src/reservoir.cpp
-)
+if(RESERVOIR_SHARED)
+    add_library(Reservoir SHARED
+        src/blo/blo.cpp
+        src/patch/patch.cpp
+        src/mat1/mat1.cpp
+        src/reservoir.cpp
+    )
+    target_link_options(Reservoir PRIVATE
+        -Wl,--whole-archive $<TARGET_FILE:confluence> -Wl,--no-whole-archive
+    )
+else()
+    add_library(Reservoir STATIC
+        src/blo/blo.cpp
+        src/patch/patch.cpp
+        src/mat1/mat1.cpp
+        src/reservoir.cpp
+    )
+endif()
 
 target_include_directories(Reservoir
     PUBLIC
