@@ -1,156 +1,491 @@
 #include "blo.hpp"
 #include "mat1/mat1.hpp"
-#include <cstring>
-#include <stdexcept>
+
 #include <confluence/endian.h>
 
-using namespace Reservoir;
+#include <cstring>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
-static void pad_to(std::vector<uint8_t>& out, size_t align) {
-    size_t i = 0;
-    while (out.size() % align != 0)
-        out.push_back(PADDING_BYTES[i++ % sizeof(PADDING_BYTES)]);
+namespace Reservoir {
+
+static uint8_t  rd_u8  (const uint8_t* d, size_t& p) { return d[p++]; }
+static uint16_t rd_u16 (const uint8_t* d, size_t& p) { uint16_t v = gc_be16(d+p); p+=2; return v; }
+static uint32_t rd_u32 (const uint8_t* d, size_t& p) { uint32_t v = gc_be32(d+p); p+=4; return v; }
+static float    rd_f32 (const uint8_t* d, size_t& p) { float    v = gc_be_f32(d+p); p+=4; return v; }
+
+static void wr_u8 (std::vector<uint8_t>& o, uint8_t  v) { o.push_back(v); }
+static void wr_u16(std::vector<uint8_t>& o, uint16_t v) { o.resize(o.size()+2); gc_write_be16(o.data()+o.size()-2,v); }
+static void wr_u32(std::vector<uint8_t>& o, uint32_t v) { o.resize(o.size()+4); gc_write_be32(o.data()+o.size()-4,v); }
+static void wr_f32(std::vector<uint8_t>& o, float    v) { o.resize(o.size()+4); gc_write_be_f32(o.data()+o.size()-4,v); }
+
+static void wr_tag(std::vector<uint8_t>& o, const char t[4]) {
+    o.push_back(t[0]); o.push_back(t[1]); o.push_back(t[2]); o.push_back(t[3]);
 }
 
-/* INF1 */
+static bool tag_eq(const uint8_t* d, size_t p, const char t[4]) {
+    return d[p]==t[0] && d[p+1]==t[1] && d[p+2]==t[2] && d[p+3]==t[3];
+}
 
-static INF1Section parse_inf1(const uint8_t* d, size_t& pos) {
+static INF1Section parse_inf1(const uint8_t* d, size_t& p)
+{
     INF1Section s;
-    s.size   = gc_be32(d + pos); pos += 4;
-    s.width  = gc_be16(d + pos); pos += 2;
-    s.height = gc_be16(d + pos); pos += 2;
-    for (int i = 0; i < 4; i++) s.values[i] = d[pos++];
-    size_t pad_size = s.size - 16;
-    s.padding.assign(d + pos, d + pos + pad_size);
-    pos += pad_size;
+    p += 4;
+    s.size   = rd_u32(d, p);
+    s.width  = rd_u16(d, p);
+    s.height = rd_u16(d, p);
+    for (int i = 0; i < 4; i++) s.values[i] = rd_u8(d, p);
+    size_t pad = s.size - 16;
+    s.padding.assign(d+p, d+p+pad);
+    p += pad;
     return s;
 }
 
-static void serialize_inf1(const INF1Section& s, std::vector<uint8_t>& out) {
-    out.insert(out.end(), {'I','N','F','1'});
-    size_t sz_pos = out.size();
-    out.resize(out.size() + 4); gc_write_be32(out.data() + sz_pos, s.size);
-    size_t w_pos = out.size();
-    out.resize(out.size() + 2); gc_write_be16(out.data() + w_pos, s.width);
-    size_t h_pos = out.size();
-    out.resize(out.size() + 2); gc_write_be16(out.data() + h_pos, s.height);
-    for (int i = 0; i < 4; i++) out.push_back(s.values[i]);
-    out.insert(out.end(), s.padding.begin(), s.padding.end());
+static void serialize_inf1(const INF1Section& s, std::vector<uint8_t>& o)
+{
+    wr_tag(o, "INF1");
+    wr_u32(o, s.size);
+    wr_u16(o, s.width);
+    wr_u16(o, s.height);
+    for (int i = 0; i < 4; i++) wr_u8(o, s.values[i]);
+    o.insert(o.end(), s.padding.begin(), s.padding.end());
 }
 
-/* TEX1 */
-
-static TEX1Section parse_tex1(const uint8_t* d, size_t& pos) {
+static TEX1Section parse_tex1(const uint8_t* d, size_t& p)
+{
     TEX1Section s;
-    s.section_size    = gc_be32(d + pos); pos += 4;
-    uint16_t tex_count = gc_be16(d + pos); pos += 2;
-    pos += 2; 
-    s.header_size     = gc_be32(d + pos); pos += 4;
-    uint16_t offset_count = gc_be16(d + pos); pos += 2;
+    size_t section_start = p - 4;
+    s.section_size  = rd_u32(d, p);
+    s.texture_count = rd_u16(d, p);
+    p += 2;
+    s.header_size   = rd_u32(d, p);
 
+    uint16_t offset_count = rd_u16(d, p);
     std::vector<uint16_t> offsets(offset_count);
-    for (auto& o : offsets) { o = gc_be16(d + pos); pos += 2; }
+    for (auto& ofs : offsets) ofs = rd_u16(d, p);
 
-    size_t refs_start = pos;
     for (uint16_t i = 0; i < offset_count; i++) {
         TEX1Reference ref;
-        ref.res_type      = d[pos++];
-        uint8_t name_len  = d[pos++];
-        ref.texture_name  = std::string(reinterpret_cast<const char*>(d + pos), name_len);
-        pos += name_len;
+        ref.res_type     = rd_u8(d, p);
+        uint8_t name_len = rd_u8(d, p);
+        ref.texture_name = std::string(reinterpret_cast<const char*>(d+p), name_len);
+        p += name_len;
         s.references.push_back(std::move(ref));
     }
 
-    size_t section_end = refs_start - (2 + offset_count * 2) - s.header_size + s.section_size;
-    while (pos < section_end) s.padding.push_back(d[pos++]);
-
+    size_t section_end = section_start + s.section_size;
+    s.padding.assign(d+p, d+section_end);
+    p = section_end;
     return s;
 }
 
-static void serialize_tex1(const TEX1Section& s, std::vector<uint8_t>& out) {
-    out.insert(out.end(), {'T','E','X','1'});
-    size_t sz_pos = out.size(); out.resize(out.size() + 4);
+static void serialize_tex1(const TEX1Section& s, std::vector<uint8_t>& o)
+{
+    wr_tag(o, "TEX1");
+    size_t sz_off = o.size(); wr_u32(o, 0);
     uint16_t count = static_cast<uint16_t>(s.references.size());
-    size_t c_pos = out.size(); out.resize(out.size() + 2); gc_write_be16(out.data() + c_pos, count);
-    out.push_back(0xFF); out.push_back(0xFF);
-    size_t hs_pos = out.size(); out.resize(out.size() + 4); gc_write_be32(out.data() + hs_pos, s.header_size);
-    size_t oc_pos = out.size(); out.resize(out.size() + 2); gc_write_be16(out.data() + oc_pos, count);
-    for (int i = 0; i < count; i++) {
-        size_t o_pos = out.size(); out.resize(out.size() + 2);
-        gc_write_be16(out.data() + o_pos, 0); // filled below
+    wr_u16(o, count);
+    o.push_back(0xFF); o.push_back(0xFF);
+    wr_u32(o, s.header_size);
+    wr_u16(o, count);
+
+    size_t offsets_off = o.size();
+    for (uint16_t i = 0; i < count; i++) wr_u16(o, 0);
+
+    uint16_t running = static_cast<uint16_t>(count * 2 + 2);
+    for (uint16_t i = 0; i < count; i++) {
+        gc_write_be16(o.data() + offsets_off + i*2, running);
+        running += static_cast<uint16_t>(2 + s.references[i].texture_name.size());
     }
 
-    size_t first_ref = count * 2 + 2;
-    size_t running = first_ref;
-    size_t offsets_base = out.size() - count * 2;
-    for (int i = 0; i < count; i++) {
-        gc_write_be16(out.data() + offsets_base - count * 2 + i * 2,
-                  static_cast<uint16_t>(i == 0 ? first_ref : running));
-        if (i > 0) running += 2 + s.references[i-1].texture_name.size();
-    }
     for (const auto& ref : s.references) {
-        out.push_back(ref.res_type);
-        out.push_back(static_cast<uint8_t>(ref.texture_name.size()));
-        out.insert(out.end(), ref.texture_name.begin(), ref.texture_name.end());
+        wr_u8(o, ref.res_type);
+        wr_u8(o, static_cast<uint8_t>(ref.texture_name.size()));
+        o.insert(o.end(), ref.texture_name.begin(), ref.texture_name.end());
     }
-    out.insert(out.end(), s.padding.begin(), s.padding.end());
-    gc_write_be32(out.data() + sz_pos, static_cast<uint32_t>(s.section_size));
+    o.insert(o.end(), s.padding.begin(), s.padding.end());
+    gc_write_be32(o.data() + sz_off, static_cast<uint32_t>(s.section_size));
 }
 
-/* FNT1 */
-
-static FNT1Section parse_fnt1(const uint8_t* d, size_t& pos) {
+static FNT1Section parse_fnt1(const uint8_t* d, size_t& p)
+{
     FNT1Section s;
-    s.section_size     = gc_be32(d + pos); pos += 4;
-    uint16_t fnt_count = gc_be16(d + pos); pos += 2;
-    pos += 2;
-    s.header_size      = gc_be32(d + pos); pos += 4;
-    uint16_t offset_count = gc_be16(d + pos); pos += 2;
+    size_t section_start = p - 4;
+    s.section_size = rd_u32(d, p);
+    p += 2;
+    p += 2;
+    s.header_size  = rd_u32(d, p);
 
-    std::vector<uint16_t> offsets(offset_count);
-    for (auto& o : offsets) { o = gc_be16(d + pos); pos += 2; }
+    uint16_t offset_count = rd_u16(d, p);
+    for (uint16_t i = 0; i < offset_count; i++) rd_u16(d, p);
 
-    size_t refs_start = pos;
     for (uint16_t i = 0; i < offset_count; i++) {
         FNT1Reference ref;
-        ref.res_type    = d[pos++];
-        uint8_t name_len = d[pos++];
-        ref.font_name   = std::string(reinterpret_cast<const char*>(d + pos), name_len);
-        pos += name_len;
+        ref.res_type    = rd_u8(d, p);
+        uint8_t name_len = rd_u8(d, p);
+        ref.font_name   = std::string(reinterpret_cast<const char*>(d+p), name_len);
+        p += name_len;
         s.references.push_back(std::move(ref));
     }
 
-    size_t section_end = refs_start - (2 + offset_count * 2) - s.header_size + s.section_size;
-    while (pos < section_end) s.padding.push_back(d[pos++]);
-
+    size_t section_end = section_start + s.section_size;
+    s.padding.assign(d+p, d+section_end);
+    p = section_end;
     return s;
 }
 
-static void serialize_fnt1(const FNT1Section& s, std::vector<uint8_t>& out) {
-    out.insert(out.end(), {'F','N','T','1'});
-    size_t sz_pos = out.size(); out.resize(out.size() + 4);
+static void serialize_fnt1(const FNT1Section& s, std::vector<uint8_t>& o)
+{
+    wr_tag(o, "FNT1");
+    size_t sz_off = o.size(); wr_u32(o, 0);
     uint16_t count = static_cast<uint16_t>(s.references.size());
-    size_t c_pos = out.size(); out.resize(out.size() + 2); gc_write_be16(out.data() + c_pos, count);
-    out.push_back(0xFF); out.push_back(0xFF);
-    size_t hs_pos = out.size(); out.resize(out.size() + 4); gc_write_be32(out.data() + hs_pos, s.header_size);
-    size_t oc_pos = out.size(); out.resize(out.size() + 2); gc_write_be16(out.data() + oc_pos, count);
-    for (int i = 0; i < count; i++) {
-        size_t o_pos = out.size(); out.resize(out.size() + 2);
-        gc_write_be16(out.data() + o_pos, 0);
+    wr_u16(o, count);
+    o.push_back(0xFF); o.push_back(0xFF);
+    wr_u32(o, s.header_size);
+    wr_u16(o, count);
+
+    size_t offsets_off = o.size();
+    for (uint16_t i = 0; i < count; i++) wr_u16(o, 0);
+
+    uint16_t running = static_cast<uint16_t>(count * 2 + 2);
+    for (uint16_t i = 0; i < count; i++) {
+        gc_write_be16(o.data() + offsets_off + i*2, running);
+        running += static_cast<uint16_t>(2 + s.references[i].font_name.size());
     }
-    size_t first_ref = count * 2 + 2;
-    size_t running = first_ref;
-    size_t offsets_base = out.size() - count * 2;
-    for (int i = 0; i < count; i++) {
-        gc_write_be16(out.data() + offsets_base - count * 2 + i * 2,
-                  static_cast<uint16_t>(i == 0 ? first_ref : running));
-        if (i > 0) running += 2 + s.references[i-1].font_name.size();
-    }
+
     for (const auto& ref : s.references) {
-        out.push_back(ref.res_type);
-        out.push_back(static_cast<uint8_t>(ref.font_name.size()));
-        out.insert(out.end(), ref.font_name.begin(), ref.font_name.end());
+        wr_u8(o, ref.res_type);
+        wr_u8(o, static_cast<uint8_t>(ref.font_name.size()));
+        o.insert(o.end(), ref.font_name.begin(), ref.font_name.end());
     }
-    out.insert(out.end(), s.padding.begin(), s.padding.end());
-    gc_write_be32(out.data() + sz_pos, static_cast<uint32_t>(s.section_size));
+    o.insert(o.end(), s.padding.begin(), s.padding.end());
+    gc_write_be32(o.data() + sz_off, static_cast<uint32_t>(s.section_size));
 }
+
+static PAN2Node parse_pan2_data(const uint8_t* d, size_t& p)
+{
+    PAN2Node n;
+    n.field_0x8    = rd_u16(d, p);
+    n.bck_idx      = rd_u16(d, p);
+    n.visible      = rd_u8(d, p);
+    n.base_position= rd_u8(d, p);
+    n.padding[0]   = rd_u8(d, p);
+    n.padding[1]   = rd_u8(d, p);
+    char tag[8]; std::memcpy(tag, d+p, 8); p += 8;
+    n.info_tag     = std::string(tag, strnlen(tag, 8));
+    char utag[8];  std::memcpy(utag, d+p, 8); p += 8;
+    n.user_info_tag= std::string(utag, strnlen(utag, 8));
+    n.size_x       = rd_f32(d, p);
+    n.size_y       = rd_f32(d, p);
+    n.scale_x      = rd_f32(d, p);
+    n.scale_y      = rd_f32(d, p);
+    n.rotate_x     = rd_f32(d, p);
+    n.rotate_y     = rd_f32(d, p);
+    n.rotate_z     = rd_f32(d, p);
+    n.translate_x  = rd_f32(d, p);
+    n.translate_y  = rd_f32(d, p);
+    for (int i = 0; i < 4; i++) n.end_padding[i] = rd_u8(d, p);
+    return n;
+}
+
+static void serialize_pan2_data(const PAN2Node& n, std::vector<uint8_t>& o)
+{
+    wr_u16(o, n.field_0x8);
+    wr_u16(o, n.bck_idx);
+    wr_u8(o, n.visible);
+    wr_u8(o, n.base_position);
+    wr_u8(o, n.padding[0]);
+    wr_u8(o, n.padding[1]);
+    char tag[8] = {}; std::memcpy(tag, n.info_tag.data(),
+                                  std::min(n.info_tag.size(), size_t(8)));
+    o.insert(o.end(), tag, tag+8);
+    char utag[8] = {}; std::memcpy(utag, n.user_info_tag.data(),
+                                   std::min(n.user_info_tag.size(), size_t(8)));
+    o.insert(o.end(), utag, utag+8);
+    wr_f32(o, n.size_x);    wr_f32(o, n.size_y);
+    wr_f32(o, n.scale_x);   wr_f32(o, n.scale_y);
+    wr_f32(o, n.rotate_x);  wr_f32(o, n.rotate_y); wr_f32(o, n.rotate_z);
+    wr_f32(o, n.translate_x); wr_f32(o, n.translate_y);
+    for (int i = 0; i < 4; i++) wr_u8(o, n.end_padding[i]);
+}
+
+static ElementNode parse_element(const uint8_t* d, size_t& p);
+static void        serialize_element(const ElementNode& n, std::vector<uint8_t>& o);
+
+static ElementNode parse_pan2_node(const uint8_t* d, size_t& p)
+{
+    ElementNode en;
+    en.type = ElementNode::Type::PAN2;
+
+    size_t node_start = p - 4;
+    uint32_t node_size = rd_u32(d, p);
+    PAN2Node pan = parse_pan2_data(d, p);
+
+    if (tag_eq(d, p, "BGN1")) {
+        p += 4;
+        en.bgn1_tag_size = rd_u32(d, p);
+        en.has_bgn1_tag  = true;
+
+        while (true) {
+            if (tag_eq(d, p, "END1")) {
+                p += 4;
+                en.end_tag_size = rd_u32(d, p);
+                en.has_end_tag  = true;
+                break;
+            }
+            pan.children.push_back(parse_element(d, p));
+        }
+    }
+
+    en.node = std::move(pan);
+    return en;
+}
+
+static ElementNode parse_pic2_node(const uint8_t* d, size_t& p)
+{
+    ElementNode en;
+    en.type = ElementNode::Type::PIC2;
+
+    uint32_t node_size = rd_u32(d, p);
+    PIC2Node pic;
+    pic.base       = parse_pan2_data(d, p);
+    pic.field_0x0  = rd_u16(d, p);
+    pic.field_0x2  = rd_u16(d, p);
+    pic.material_num = rd_u16(d, p);
+    pic.field_0x6  = rd_u16(d, p);
+    for (int i = 0; i < 4; i++) pic.field_0x8[i]  = rd_u16(d, p);
+    for (int i = 0; i < 8; i++) pic.field_0x10[i] = rd_u16(d, p);
+    for (int i = 0; i < 4; i++) pic.corner_color[i] = rd_u32(d, p);
+    en.node = std::move(pic);
+    return en;
+}
+
+static ElementNode parse_tbx2_node(const uint8_t* d, size_t& p)
+{
+    ElementNode en;
+    en.type = ElementNode::Type::TBX2;
+
+    size_t node_start = p - 4;
+    uint32_t node_size = rd_u32(d, p);
+    TBX2Node tbx;
+    tbx.base         = parse_pan2_data(d, p);
+    tbx.field_0x0    = rd_u16(d, p);
+    tbx.field_0x2    = rd_u16(d, p);
+    tbx.material_num = rd_u16(d, p);
+    tbx.char_space   = rd_u16(d, p);
+    tbx.line_space   = rd_u16(d, p);
+    tbx.font_size_x  = rd_u16(d, p);
+    tbx.font_size_y  = rd_u16(d, p);
+    tbx.h_bind       = rd_u8(d, p);
+    tbx.v_bind       = rd_u8(d, p);
+    for (int i = 0; i < 4; i++) tbx.char_color[i] = rd_u8(d, p);
+    for (int i = 0; i < 4; i++) tbx.grad_color[i] = rd_u8(d, p);
+    tbx.connected    = rd_u8(d, p);
+    for (int i = 0; i < 3; i++) tbx.field_0x19[i] = rd_u8(d, p);
+    tbx.field_0x1c   = rd_u16(d, p);
+    tbx.field_0x1e   = rd_u16(d, p);
+
+    size_t consumed = p - node_start;
+    size_t remaining = node_size - consumed;
+    tbx.end_padding.assign(d+p, d+p+remaining);
+    p += remaining;
+
+    en.node = std::move(tbx);
+    return en;
+}
+
+static ElementNode parse_win2_node(const uint8_t* d, size_t& p)
+{
+    ElementNode en;
+    en.type = ElementNode::Type::WIN2;
+
+    size_t node_start = p - 4;
+    uint32_t node_size = rd_u32(d, p);
+    WIN2Node win;
+    win.base = parse_pan2_data(d, p);
+    size_t consumed = p - node_start;
+    size_t remaining = node_size - consumed;
+    win.data.assign(d+p, d+p+remaining);
+    p += remaining;
+
+    en.node = std::move(win);
+    return en;
+}
+
+static ElementNode parse_element(const uint8_t* d, size_t& p)
+{
+    bool had_leading_bgn1 = false;
+    uint32_t leading_bgn1_size = 0;
+    if (tag_eq(d, p, "BGN1")) {
+        p += 4;
+        leading_bgn1_size = rd_u32(d, p);
+        had_leading_bgn1  = true;
+    }
+
+    char magic[4];
+    std::memcpy(magic, d+p, 4); p += 4;
+
+    ElementNode en;
+    if      (std::memcmp(magic, "PAN2", 4) == 0) en = parse_pan2_node(d, p);
+    else if (std::memcmp(magic, "PIC2", 4) == 0) en = parse_pic2_node(d, p);
+    else if (std::memcmp(magic, "TBX2", 4) == 0) en = parse_tbx2_node(d, p);
+    else if (std::memcmp(magic, "WIN2", 4) == 0) en = parse_win2_node(d, p);
+    else throw std::runtime_error(std::string("unknown element magic: ") +
+                                  magic[0]+magic[1]+magic[2]+magic[3]);
+
+    if (had_leading_bgn1) {
+        en.has_bgn1_tag  = true;
+        en.bgn1_tag_size = leading_bgn1_size;
+    }
+    return en;
+}
+
+static void serialize_element(const ElementNode& en, std::vector<uint8_t>& o)
+{
+    switch (en.type) {
+
+    case ElementNode::Type::PAN2: {
+        const auto& pan = std::get<PAN2Node>(en.node);
+
+        if (en.has_bgn1_tag) {
+            wr_tag(o, "BGN1"); wr_u32(o, en.bgn1_tag_size);
+        }
+
+        wr_tag(o, "PAN2");
+        size_t sz_off = o.size(); wr_u32(o, 72);
+        serialize_pan2_data(pan, o);
+
+        for (const auto& child : pan.children)
+            serialize_element(child, o);
+
+        if (en.has_end_tag) {
+            wr_tag(o, "END1"); wr_u32(o, en.end_tag_size);
+        }
+        break;
+    }
+
+    case ElementNode::Type::PIC2: {
+        const auto& pic = std::get<PIC2Node>(en.node);
+        wr_tag(o, "PIC2");
+        wr_u32(o, 128);
+        serialize_pan2_data(pic.base, o);
+        wr_u16(o, pic.field_0x0);
+        wr_u16(o, pic.field_0x2);
+        wr_u16(o, pic.material_num);
+        wr_u16(o, pic.field_0x6);
+        for (int i = 0; i < 4; i++) wr_u16(o, pic.field_0x8[i]);
+        for (int i = 0; i < 8; i++) wr_u16(o, pic.field_0x10[i]);
+        for (int i = 0; i < 4; i++) wr_u32(o, pic.corner_color[i]);
+        break;
+    }
+
+    case ElementNode::Type::TBX2: {
+        const auto& tbx = std::get<TBX2Node>(en.node);
+        wr_tag(o, "TBX2");
+        uint32_t sz = 112 + static_cast<uint32_t>(tbx.end_padding.size());
+        wr_u32(o, sz);
+        serialize_pan2_data(tbx.base, o);
+        wr_u16(o, tbx.field_0x0);
+        wr_u16(o, tbx.field_0x2);
+        wr_u16(o, tbx.material_num);
+        wr_u16(o, tbx.char_space);
+        wr_u16(o, tbx.line_space);
+        wr_u16(o, tbx.font_size_x);
+        wr_u16(o, tbx.font_size_y);
+        wr_u8(o, tbx.h_bind);
+        wr_u8(o, tbx.v_bind);
+        for (int i = 0; i < 4; i++) wr_u8(o, tbx.char_color[i]);
+        for (int i = 0; i < 4; i++) wr_u8(o, tbx.grad_color[i]);
+        wr_u8(o, tbx.connected);
+        for (int i = 0; i < 3; i++) wr_u8(o, tbx.field_0x19[i]);
+        wr_u16(o, tbx.field_0x1c);
+        wr_u16(o, tbx.field_0x1e);
+        o.insert(o.end(), tbx.end_padding.begin(), tbx.end_padding.end());
+        break;
+    }
+
+    case ElementNode::Type::WIN2: {
+        const auto& win = std::get<WIN2Node>(en.node);
+        wr_tag(o, "WIN2");
+        uint32_t sz = 8 + static_cast<uint32_t>(
+            72 /*pan2*/ + win.data.size());
+        wr_u32(o, sz);
+        serialize_pan2_data(win.base, o);
+        o.insert(o.end(), win.data.begin(), win.data.end());
+        break;
+    }
+    }
+}
+
+static ElementNode parse_root_element(const uint8_t* d, size_t& p)
+{
+    if (tag_eq(d, p, "BGN1")) {
+        p += 4;
+        uint32_t bgn_size = rd_u32(d, p);
+    }
+
+    if (!tag_eq(d, p, "PAN2"))
+        throw std::runtime_error("expected PAN2 root element");
+
+    p += 4;
+    return parse_pan2_node(d, p);
+}
+
+BLO parse_blo(const std::vector<uint8_t>& data)
+{
+    const uint8_t* d = data.data();
+    size_t p = 0;
+    BLO blo;
+
+    std::memcpy(blo.tag,  d+p, 4); p += 4;
+    std::memcpy(blo.type, d+p, 4); p += 4;
+    blo.size   = rd_u32(d, p);
+    blo.blocks = rd_u32(d, p);
+    std::memcpy(blo.header_padding, d+p, 16); p += 16;
+
+    if (!tag_eq(d, p, "INF1")) throw std::runtime_error("expected INF1");
+    p += 4;
+    blo.inf1 = parse_inf1(d, p);
+
+    if (!tag_eq(d, p, "TEX1")) throw std::runtime_error("expected TEX1");
+    p += 4;
+    blo.tex1 = parse_tex1(d, p);
+
+    if (!tag_eq(d, p, "FNT1")) throw std::runtime_error("expected FNT1");
+    p += 4;
+    blo.fnt1 = parse_fnt1(d, p);
+
+    if (!tag_eq(d, p, "MAT1")) throw std::runtime_error("expected MAT1");
+    parse_mat1_section(d, &p, blo.mat1);
+
+    blo.root = parse_root_element(d, p);
+
+    if (p < data.size())
+        blo.padding.assign(d+p, d+data.size());
+
+    return blo;
+}
+
+std::vector<uint8_t> serialize_blo(const BLO& blo)
+{
+    std::vector<uint8_t> o;
+    o.reserve(blo.size + 32);
+
+    o.insert(o.end(), blo.tag,  blo.tag  + 4);
+    o.insert(o.end(), blo.type, blo.type + 4);
+    wr_u32(o, blo.size);
+    wr_u32(o, blo.blocks);
+    o.insert(o.end(), blo.header_padding, blo.header_padding + 16);
+
+    serialize_inf1(blo.inf1, o);
+    serialize_tex1(blo.tex1, o);
+    serialize_fnt1(blo.fnt1, o);
+    serialize_mat1_section(o, blo.mat1);
+    serialize_element(blo.root, o);
+
+    o.insert(o.end(), blo.padding.begin(), blo.padding.end());
+    return o;
+}
+
+} // namespace Reservoir

@@ -133,6 +133,9 @@ struct BLO {
     std::vector<uint8_t> padding;
 };
 
+BLO parse_blo(const std::vector<uint8_t>& data);
+std::vector<uint8_t> serialize_blo(const BLO& blo);
+
 } // namespace Reservoir
 
 #endif
