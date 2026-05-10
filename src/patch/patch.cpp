@@ -176,6 +176,9 @@ static PAN2Node make_pan2_base(const PatchEntry& e)
     p.rotate_z      = e.rotation;
     p.translate_x   = e.offset_x;
     p.translate_y   = e.offset_y;
+    p.field_0x8  = 64;
+    p.padding[0] = 0x52;
+    p.padding[1] = 0x45;
     return p;
 }
 
@@ -489,53 +492,50 @@ void apply_patch(BLO& blo, const PatchDocument& patch)
         }
 
         switch (entry.action) {
-
-        case PatchAction::Add: {
-            auto& ch = as_pan2(*parent_node).children;
-            if (entry.type == "PAN2") {
-                ch.push_back(make_pan2_node(entry));
-            } else if (entry.type == "PIC2") {
-                ch.push_back(make_pic2_node(entry));
-            } else if (entry.type == "TBX2") {
-                ch.push_back(make_tbx2_node(entry));
-            }
-            break;
-        }
-
-        case PatchAction::Delete: {
-            auto& children = as_pan2(*parent_node).children;
-            children.erase(
-                std::remove_if(children.begin(), children.end(),
-                    [&](const ElementNode& child) {
-                        const std::string& name = (child.type == ElementNode::Type::PAN2)
-                            ? as_pan2(child).info_tag
-                            : (child.type == ElementNode::Type::PIC2)
-                                ? as_pic2(child).base.info_tag
-                                : (child.type == ElementNode::Type::TBX2)
-                                    ? as_tbx2(child).base.info_tag
-                                    : std::get<WIN2Node>(child.node).base.info_tag;
-                        return strip_prefix(name) == entry.element_name;
-                    }),
-                children.end());
-            break;
-        }
-
-        case PatchAction::Edit: {
-            for (auto& child : as_pan2(*parent_node).children) {
-                const std::string& name = (child.type == ElementNode::Type::PAN2)
-                    ? as_pan2(child).info_tag
-                    : (child.type == ElementNode::Type::PIC2)
-                        ? as_pic2(child).base.info_tag
-                        : (child.type == ElementNode::Type::TBX2)
-                            ? as_tbx2(child).base.info_tag
-                            : std::get<WIN2Node>(child.node).base.info_tag;
-                if (strip_prefix(name) == entry.element_name) {
-                    for (const auto& fe : entry.fields_to_edit)
-                        apply_field_edit(child, fe);
+            case PatchAction::Add: {
+                auto& ch = as_pan2(*parent_node).children;
+                if (entry.type == "PAN2") {
+                    ch.push_back(make_pan2_node(entry));
+                } else if (entry.type == "PIC2") {
+                    ch.push_back(make_pic2_node(entry));
+                } else if (entry.type == "TBX2") {
+                    ch.push_back(make_tbx2_node(entry));
                 }
+                break;
             }
-            break;
-        }
+            case PatchAction::Delete: {
+                auto& children = as_pan2(*parent_node).children;
+                children.erase(
+                    std::remove_if(children.begin(), children.end(),
+                        [&](const ElementNode& child) {
+                            const std::string& name = (child.type == ElementNode::Type::PAN2)
+                                ? as_pan2(child).info_tag
+                                : (child.type == ElementNode::Type::PIC2)
+                                    ? as_pic2(child).base.info_tag
+                                    : (child.type == ElementNode::Type::TBX2)
+                                        ? as_tbx2(child).base.info_tag
+                                        : std::get<WIN2Node>(child.node).base.info_tag;
+                            return strip_prefix(name) == entry.element_name;
+                        }),
+                    children.end());
+                break;
+            }
+            case PatchAction::Edit: {
+                for (auto& child : as_pan2(*parent_node).children) {
+                    const std::string& name = (child.type == ElementNode::Type::PAN2)
+                        ? as_pan2(child).info_tag
+                        : (child.type == ElementNode::Type::PIC2)
+                            ? as_pic2(child).base.info_tag
+                            : (child.type == ElementNode::Type::TBX2)
+                                ? as_tbx2(child).base.info_tag
+                                : std::get<WIN2Node>(child.node).base.info_tag;
+                    if (strip_prefix(name) == entry.element_name) {
+                        for (const auto& fe : entry.fields_to_edit)
+                            apply_field_edit(child, fe);
+                    }
+                }
+                break;
+            }
         }
     }
 
@@ -591,7 +591,6 @@ void apply_patch(BLO& blo, const PatchDocument& patch)
         get_pic2s(*node, pic2_list);
 
     reassign_unk_indexes(root, pic2_list);
-    blo.size = 8 + calc_elements_size(root);
 }
 
 static FieldType parse_field_type(const std::string& s)

@@ -146,7 +146,7 @@ static void serialize_init_data_entry(std::vector<uint8_t>& out,
     write_u8(out, d.mat_alpha_calc);
     write_u8(out, d.unknown_7);
 
-    for (auto v : d.mat_color_idx)            write_be16(out, v);
+    for (auto v : d.mat_color_idx)             write_be16(out, v);
     for (auto v : d.color_chan_info_idx)       write_be16(out, v);
     for (auto v : d.tex_coord_info_idx)        write_be16(out, v);
     for (auto v : d.tex_mtx_info_idx)          write_be16(out, v);
@@ -183,7 +183,7 @@ static void compute_section_counts(MatInitDataSection& s)
         upd(c.blend_info,             d.blend_info_idx);
         upd(c.font_no,                d.font_no_idx);
 
-        for (auto v : d.mat_color_idx)           upd(c.mat_color,           v);
+        for (auto v : d.mat_color_idx)            upd(c.mat_color,           v);
         for (auto v : d.color_chan_info_idx)      upd(c.color_chan_info,     v);
         for (auto v : d.tex_coord_info_idx)       upd(c.tex_coord_info,      v);
         for (auto v : d.tex_mtx_info_idx)         upd(c.tex_mtx_info,        v);
@@ -281,14 +281,11 @@ void parse_mat_name_table_section(const uint8_t* base, const MAT1SectionOffsets&
             uint32_t len  = next - cur;
             size_t name_pos = offsets.mat_name_table + 4u + out.num_entries * 4u + cur - (out.num_entries * 4u + 4u - 4u);
 
-
-
             size_t name_block = offsets.mat_name_table + 4u + out.num_entries * 4u;
             out.mat_names[i].assign(
                 base + name_block + out.header_entries[i].name_offset,
                 base + name_block + out.header_entries[i + 1].name_offset);
         } else {
-
             size_t name_block = offsets.mat_name_table + 4u + out.num_entries * 4u;
             size_t start = name_block + out.header_entries[i].name_offset;
             size_t end = start;
@@ -297,7 +294,6 @@ void parse_mat_name_table_section(const uint8_t* base, const MAT1SectionOffsets&
             out.mat_names[i].assign(base + start, base + end);
         }
     }
-
 
     size_t name_block = offsets.mat_name_table + 4u + out.num_entries * 4u;
     size_t names_end = name_block;
@@ -826,8 +822,6 @@ void serialize_dither_section(std::vector<uint8_t>& out, const DitherSection& s)
 
 void parse_mat1_section(const uint8_t* buf, size_t* pos_inout, MAT1Section& out)
 {
-
-
     const uint8_t* base = buf + *pos_inout;
     size_t local = 0;
 
