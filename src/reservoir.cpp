@@ -264,28 +264,28 @@ std::vector<PatchResult> process_layout(
         if (patch.header.action == "add" && !patch.header.arc.empty()) {
             GCArc* arc = get_arc(patch.header.arc);
             if (arc) {
-                uint8_t* owned = static_cast<uint8_t*>(malloc(out_bytes.size()));
-                memcpy(owned, out_bytes.data(), out_bytes.size());
-
                 int replaced = -1;
                 int count = gc_arc_entry_count(arc);
                 for (int i = 0; i < count; i++) {
                     const GCEntry* e = gc_arc_entry(arc, i);
-                    if (e && e->name && to_lower(e->name) == to_lower(out_name)) {
-                        gc_arc_replace_file(arc, i, owned, out_bytes.size());
-                        replaced = i;
-                        break;
-                    }
+                    if (!e || !e->name) continue;
+                    const char* base = strrchr(e->name, '/');
+                    base = base ? base + 1 : e->name;
+                    if (strcasecmp(base, out_name.c_str()) != 0) continue;
+
+                    uint8_t* copy = static_cast<uint8_t*>(malloc(out_bytes.size()));
+                    memcpy(copy, out_bytes.data(), out_bytes.size());
+                    gc_arc_replace_file(arc, i, copy, out_bytes.size());
+                    replaced = i;
                 }
                 if (replaced < 0) {
-                    gc_arc_add_file(arc, "scrn",
-                                    out_name.c_str(),
-                                    owned,
-                                    out_bytes.size());
+                    uint8_t* owned = static_cast<uint8_t*>(malloc(out_bytes.size()));
+                    memcpy(owned, out_bytes.data(), out_bytes.size());
+                    gc_arc_add_file(arc, "scrn", out_name.c_str(), owned, out_bytes.size());
                 }
             } else {
                 std::cerr << "arc '" << patch.header.arc << "' not found for "
-                        << out_name << "\n";
+                          << out_name << "\n";
             }
         }
 
