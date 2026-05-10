@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(Confluence REQUIRED)
+
+include("${CMAKE_CURRENT_LIST_DIR}/ReservoirTargets.cmake")
+
+check_required_components(Reservoir)
