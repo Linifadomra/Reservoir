@@ -73,6 +73,7 @@ struct PAN2Node {
 
 struct PIC2Node {
     PAN2Node base;
+    uint32_t pan2_sub_tag_size = 0;
     uint16_t field_0x0;
     uint16_t field_0x2;
     uint16_t material_num;
@@ -85,6 +86,7 @@ struct PIC2Node {
 
 struct TBX2Node {
     PAN2Node base;
+    uint32_t pan2_sub_tag_size = 0;
     uint16_t field_0x0;
     uint16_t field_0x2;
     uint16_t material_num;
@@ -105,6 +107,7 @@ struct TBX2Node {
 
 struct WIN2Node {
     PAN2Node             base;
+    uint32_t pan2_sub_tag_size = 0;
     std::vector<uint8_t> data;
 };
 
@@ -113,10 +116,12 @@ struct ElementNode {
     Type type;
     std::variant<PAN2Node, PIC2Node, TBX2Node, WIN2Node> node;
 
-    bool     has_bgn1_tag  = false;
-    uint32_t bgn1_tag_size = 0;
-    bool     has_end_tag   = false;
-    uint32_t end_tag_size  = 0;
+    bool     has_leading_bgn1_tag   = false;
+    uint32_t leading_bgn1_tag_size  = 0;
+    bool     has_children_bgn1_tag  = false;
+    uint32_t children_bgn1_tag_size = 0;
+    bool     has_end_tag    = false;
+    uint32_t end_tag_size   = 0;
 };
 
 struct BLO {

@@ -223,14 +223,14 @@ static ElementNode parse_pan2_node(const uint8_t* d, size_t& p, size_t data_size
 {
     ElementNode en;
     en.type = ElementNode::Type::PAN2;
-    size_t node_start = p - 4; 
+    size_t node_start = p - 4;
     uint32_t node_size = rd_u32(d, p);
     PAN2Node pan = parse_pan2_data(d, p);
 
     if (tag_eq(d, p, "BGN1")) {
         p += 4;
-        en.bgn1_tag_size = rd_u32(d, p);
-        en.has_bgn1_tag  = true;
+        en.children_bgn1_tag_size = rd_u32(d, p);
+        en.has_children_bgn1_tag  = true;
         while (true) {
             if (p + 4 > data_size)
                 throw std::runtime_error("unexpected end of data inside PAN2 children");
@@ -260,7 +260,6 @@ static ElementNode parse_pan2_node(const uint8_t* d, size_t& p, size_t data_size
 
             pan.children.push_back(parse_element(d, p, data_size));
         }
-
     }
 
     en.node = std::move(pan);
@@ -274,6 +273,13 @@ static ElementNode parse_pic2_node(const uint8_t* d, size_t& p, size_t data_size
     size_t node_start = p - 4;
     uint32_t node_size = rd_u32(d, p);
     PIC2Node pic;
+
+    // Consume embedded 'pan2' sub-tag if present
+    if (tag_eq(d, p, "PAN2")) {
+        p += 4;
+        pic.pan2_sub_tag_size = rd_u32(d, p);
+    }
+
     pic.base         = parse_pan2_data(d, p);
     pic.field_0x0    = rd_u16(d, p);
     pic.field_0x2    = rd_u16(d, p);
@@ -288,7 +294,7 @@ static ElementNode parse_pic2_node(const uint8_t* d, size_t& p, size_t data_size
         throw std::runtime_error("PIC2 remaining exceeds buffer");
     pic.end_padding.assign(d+p, d+p+remaining);
     p += remaining;
-    
+
     en.node = std::move(pic);
     return en;
 }
@@ -300,6 +306,13 @@ static ElementNode parse_tbx2_node(const uint8_t* d, size_t& p, size_t data_size
     size_t node_start = p - 4;
     uint32_t node_size = rd_u32(d, p);
     TBX2Node tbx;
+
+    // Consume embedded 'pan2' sub-tag if present
+    if (tag_eq(d, p, "PAN2")) {
+        p += 4;
+        tbx.pan2_sub_tag_size = rd_u32(d, p);
+    }
+
     tbx.base         = parse_pan2_data(d, p);
     tbx.field_0x0    = rd_u16(d, p);
     tbx.field_0x2    = rd_u16(d, p);
@@ -317,8 +330,6 @@ static ElementNode parse_tbx2_node(const uint8_t* d, size_t& p, size_t data_size
     tbx.field_0x1c   = rd_u16(d, p);
     tbx.field_0x1e   = rd_u16(d, p);
     size_t consumed  = p - node_start;
-    if (node_size > data_size)
-        throw std::runtime_error("node_size exceeds total data size");
     if (node_size < consumed)
         throw std::runtime_error("TBX2 node_size smaller than consumed bytes");
     size_t remaining = node_size - consumed;
@@ -326,6 +337,7 @@ static ElementNode parse_tbx2_node(const uint8_t* d, size_t& p, size_t data_size
         throw std::runtime_error("TBX2 remaining exceeds buffer");
     tbx.end_padding.assign(d+p, d+p+remaining);
     p += remaining;
+
     en.node = std::move(tbx);
     return en;
 }
@@ -337,6 +349,13 @@ static ElementNode parse_win2_node(const uint8_t* d, size_t& p, size_t data_size
     size_t node_start = p - 4;
     uint32_t node_size = rd_u32(d, p);
     WIN2Node win;
+
+    // Consume embedded 'pan2' sub-tag if present
+    if (tag_eq(d, p, "PAN2")) {
+        p += 4;
+        win.pan2_sub_tag_size = rd_u32(d, p);
+    }
+
     win.base = parse_pan2_data(d, p);
     size_t consumed  = p - node_start;
     if (node_size < consumed)
@@ -356,12 +375,15 @@ static void serialize_element(const ElementNode& en, std::vector<uint8_t>& o)
     switch (en.type) {
         case ElementNode::Type::PAN2: {
             const auto& pan = std::get<PAN2Node>(en.node);
-            if (en.has_bgn1_tag) {
-                wr_tag(o, "BGN1"); wr_u32(o, en.bgn1_tag_size);
+            if (en.has_leading_bgn1_tag) {
+                wr_tag(o, "BGN1"); wr_u32(o, en.leading_bgn1_tag_size);
             }
             wr_tag(o, "PAN2");
             wr_u32(o, 72);
             serialize_pan2_data(pan, o);
+            if (en.has_children_bgn1_tag) {
+                wr_tag(o, "BGN1"); wr_u32(o, en.children_bgn1_tag_size);
+            }
             for (const auto& child : pan.children)
                 serialize_element(child, o);
             if (en.has_end_tag) {
@@ -374,6 +396,9 @@ static void serialize_element(const ElementNode& en, std::vector<uint8_t>& o)
             size_t tag_off = o.size();
             wr_tag(o, "PIC2");
             size_t sz_off = o.size(); wr_u32(o, 0);
+            if (pic.pan2_sub_tag_size > 0) {
+                wr_tag(o, "pan2"); wr_u32(o, pic.pan2_sub_tag_size);
+            }
             serialize_pan2_data(pic.base, o);
             wr_u16(o, pic.field_0x0);
             wr_u16(o, pic.field_0x2);
@@ -391,6 +416,9 @@ static void serialize_element(const ElementNode& en, std::vector<uint8_t>& o)
             size_t tag_off = o.size();
             wr_tag(o, "TBX2");
             size_t sz_off = o.size(); wr_u32(o, 0);
+            if (tbx.pan2_sub_tag_size > 0) {
+                wr_tag(o, "pan2"); wr_u32(o, tbx.pan2_sub_tag_size);
+            }
             serialize_pan2_data(tbx.base, o);
             wr_u16(o, tbx.field_0x0);
             wr_u16(o, tbx.field_0x2);
@@ -416,6 +444,9 @@ static void serialize_element(const ElementNode& en, std::vector<uint8_t>& o)
             size_t tag_off = o.size();
             wr_tag(o, "WIN2");
             size_t sz_off = o.size(); wr_u32(o, 0);
+            if (win.pan2_sub_tag_size > 0) {
+                wr_tag(o, "pan2"); wr_u32(o, win.pan2_sub_tag_size);
+            }
             serialize_pan2_data(win.base, o);
             o.insert(o.end(), win.data.begin(), win.data.end());
             gc_write_be32(o.data() + sz_off, static_cast<uint32_t>(o.size() - tag_off));
@@ -429,7 +460,7 @@ static ElementNode parse_element(const uint8_t* d, size_t& p, size_t data_size)
     if (p + 4 > data_size)
         throw std::runtime_error("unexpected end of data reading element tag");
 
-    bool had_leading_bgn1    = false;
+    bool had_leading_bgn1      = false;
     uint32_t leading_bgn1_size = 0;
 
     if (tag_eq(d, p, "BGN1")) {
@@ -467,8 +498,8 @@ static ElementNode parse_element(const uint8_t* d, size_t& p, size_t data_size)
         }() + ") at offset " + std::to_string(p - 4));
 
     if (had_leading_bgn1) {
-        en.has_bgn1_tag  = true;
-        en.bgn1_tag_size = leading_bgn1_size;
+        en.has_leading_bgn1_tag  = true;
+        en.leading_bgn1_tag_size = leading_bgn1_size;
     }
 
     return en;

@@ -185,10 +185,10 @@ static ElementNode make_pan2_node(const PatchEntry& e)
     n.type = ElementNode::Type::PAN2;
     PAN2Node p = make_pan2_base(e);
     if (e.has_children == "Yes") {
-        n.has_bgn1_tag  = true;
-        n.bgn1_tag_size = 8;
-        n.has_end_tag   = true;
-        n.end_tag_size  = 8;
+        n.has_children_bgn1_tag  = true;
+        n.children_bgn1_tag_size = 8;
+        n.has_end_tag            = true;
+        n.end_tag_size           = 8;
     }
     n.node = std::move(p);
     return n;
@@ -199,10 +199,12 @@ static ElementNode make_pic2_node(const PatchEntry& e)
     ElementNode n;
     n.type = ElementNode::Type::PIC2;
     PIC2Node p{};
-    p.base         = make_pan2_base(e);
-    p.field_0x0    = 48;
-    p.field_0x2    = (uint16_t)e.unk_idx;
-    p.material_num = (uint16_t)e.mat_idx;
+    p.base              = make_pan2_base(e);
+    p.pan2_sub_tag_size = 72;          // embedded 'pan2' sub-header, size=72
+    p.field_0x0         = 48;
+    p.field_0x2         = (uint16_t)e.unk_idx;
+    p.material_num      = (uint16_t)e.mat_idx;
+    p.field_0x6         = 0x5245;      // 'RE' — matches Python new_pic2
     for (size_t i = 0; i < 4 && i < e.unk_indexes.size(); ++i)
         p.field_0x8[i] = (uint16_t)e.unk_indexes[i];
     for (size_t i = 0; i < 8 && i < e.uv_coords.size(); ++i)
@@ -223,15 +225,16 @@ static ElementNode make_tbx2_node(const PatchEntry& e)
     ElementNode n;
     n.type = ElementNode::Type::TBX2;
     TBX2Node t{};
-    t.base         = make_pan2_base(e);
-    t.field_0x2    = (uint16_t)e.unk_idx;
-    t.material_num = 0;
-    t.char_space   = (uint16_t)e.char_space;
-    t.line_space   = (uint16_t)e.line_space;
-    t.font_size_x  = (uint16_t)e.font_size_x;
-    t.font_size_y  = (uint16_t)e.font_size_y;
-    t.h_bind       = get_horiz_bind(e.h_bind);
-    t.v_bind       = get_vert_bind(e.v_bind);
+    t.base              = make_pan2_base(e);
+    t.pan2_sub_tag_size = 72;          // embedded 'pan2' sub-header, size=72
+    t.field_0x2         = (uint16_t)e.unk_idx;
+    t.material_num      = 0;
+    t.char_space        = (uint16_t)e.char_space;
+    t.line_space        = (uint16_t)e.line_space;
+    t.font_size_x       = (uint16_t)e.font_size_x;
+    t.font_size_y       = (uint16_t)e.font_size_y;
+    t.h_bind            = get_horiz_bind(e.h_bind);
+    t.v_bind            = get_vert_bind(e.v_bind);
     for (size_t i = 0; i < 4 && i < e.char_color.size(); ++i)
         t.char_color[i] = (uint8_t)e.char_color[i];
     for (size_t i = 0; i < 4 && i < e.grad_color.size(); ++i)
@@ -437,16 +440,20 @@ static uint32_t calc_elements_size(const ElementNode& node)
 {
     if (node.type == ElementNode::Type::PAN2) {
         const auto& p = std::get<PAN2Node>(node.node);
-        uint32_t sz = 72 + node.bgn1_tag_size + node.end_tag_size;
+        uint32_t sz = 72 + node.leading_bgn1_tag_size + node.children_bgn1_tag_size + node.end_tag_size;
         for (const auto& child : p.children)
             sz += calc_elements_size(child);
         return sz;
     }
-    if (node.type == ElementNode::Type::PIC2)
-        return 128;
+    if (node.type == ElementNode::Type::PIC2) {
+        const auto& pic = std::get<PIC2Node>(node.node);
+        uint32_t sub = pic.pan2_sub_tag_size > 0 ? 8u : 0u;
+        return 8 + sub + 64 + 48 + (uint32_t)pic.end_padding.size();
+    }
     if (node.type == ElementNode::Type::TBX2) {
         const auto& t = std::get<TBX2Node>(node.node);
-        return 112 + (uint32_t)t.end_padding.size();
+        uint32_t sub = t.pan2_sub_tag_size > 0 ? 8u : 0u;
+        return 8 + sub + 64 + 40 + (uint32_t)t.end_padding.size();
     }
     return 0;
 }
