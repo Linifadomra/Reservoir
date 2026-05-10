@@ -25,7 +25,7 @@ target_include_directories(Reservoir
 )
 
 target_link_libraries(Reservoir
-    PRIVATE
+    PUBLIC
         Confluence::confluence
 )
 
