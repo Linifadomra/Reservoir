@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(RESERVOIR_SHARED "Build Reservoir as a shared library" OFF)
+option(RESERVOIR_BUILD_BINARY "Build Reservoir as a CLI tool" OFF)
 
 find_package(Confluence REQUIRED)
 
@@ -61,3 +62,7 @@ install(EXPORT ReservoirTargets
 )
 
 add_library(Reservoir::Reservoir ALIAS Reservoir)
+
+if(RESERVOIR_BUILD_BINARY)
+    add_subdirectory(cli)
+endif()
