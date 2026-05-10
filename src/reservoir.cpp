@@ -6,6 +6,7 @@
 #include <confluence/yaz0.h>
 
 #include <filesystem>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -70,17 +71,21 @@ static void load_blos_from_arc(const fs::path& arc_path,
     auto decompressed = decompress_if_needed(arc_bytes.data(), arc_bytes.size());
     GCArc* arc = gc_arc_open_mem(decompressed.data(), decompressed.size());
     if (!arc) {
-        std::cerr << "failed to open arc: " << arc_path.filename() << "\n";
+        if (decompressed.size() < 4 || memcmp(decompressed.data(), "RARC", 4) != 0) {
+            std::cerr << "not a RARC: " << arc_path.filename() 
+                    << " magic: " << std::hex 
+                    << (int)decompressed[0] << (int)decompressed[1] 
+                    << (int)decompressed[2] << (int)decompressed[3] << "\n";
+        } else {
+            std::cerr << "RARC parse failed: " << arc_path.filename() << "\n";
+        }
         return;
     }
 
     int count = gc_arc_entry_count(arc);
     for (int i = 0; i < count; ++i) {
         const GCEntry* entry = gc_arc_entry(arc, i);
-        if (!entry || !entry->name) { 
-            std::cerr << "Arc failed to load or has no entry\n"; 
-            continue; 
-        }
+        if (!entry || !entry->name || entry->name[0] == '\0') continue;
 
         std::string name = entry->name;
         if (to_lower(name).rfind(".blo") == std::string::npos) continue;
@@ -170,6 +175,7 @@ std::vector<PatchResult> process_layout(
     }
 
     std::unordered_map<std::string, GCArc*> open_arcs;
+    std::unordered_map<std::string, std::vector<uint8_t>> arc_buffers;
 
     auto get_arc = [&](const std::string& arc_name) -> GCArc* {
         auto it = open_arcs.find(arc_name);
@@ -181,12 +187,15 @@ std::vector<PatchResult> process_layout(
             if (entry.path().filename().string().find(arc_name) == std::string::npos)
                 continue;
 
-            auto bytes = read_file(entry.path());
-            GCArc* arc = gc_arc_open_mem(bytes.data(), bytes.size());
+            auto& buf = arc_buffers[arc_name];
+            auto raw = read_file(entry.path());
+            buf = decompress_if_needed(raw.data(), raw.size());
+            GCArc* arc = gc_arc_open_mem(buf.data(), buf.size());
             if (arc) {
                 open_arcs[arc_name] = arc;
                 return arc;
             }
+            arc_buffers.erase(arc_name);
         }
         return nullptr;
     };
@@ -210,7 +219,9 @@ std::vector<PatchResult> process_layout(
             continue;
         }
 
-        auto it = blo_map.find(to_lower(patch.header.blo_file));
+        auto it = blo_map.find("scrn/" + to_lower(patch.header.blo_file));
+        if (it == blo_map.end())
+            it = blo_map.find(to_lower(patch.header.blo_file));
         if (it == blo_map.end()) {
             std::cerr << "patch " << json_path.filename()
                       << " targets unknown blo '" << patch.header.blo_file << "'\n";
@@ -249,13 +260,15 @@ std::vector<PatchResult> process_layout(
         if (patch.header.action == "add" && !patch.header.arc.empty()) {
             GCArc* arc = get_arc(patch.header.arc);
             if (arc) {
+                uint8_t* owned = static_cast<uint8_t*>(malloc(out_bytes.size()));
+                memcpy(owned, out_bytes.data(), out_bytes.size());
                 gc_arc_add_file(arc, "scrn",
                                 out_name.c_str(),
-                                out_bytes.data(),
+                                owned,
                                 out_bytes.size());
             } else {
                 std::cerr << "arc '" << patch.header.arc << "' not found for "
-                          << out_name << "\n";
+                        << out_name << "\n";
             }
         }
 

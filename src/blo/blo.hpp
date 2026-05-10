@@ -80,6 +80,7 @@ struct PIC2Node {
     uint16_t field_0x8[4];
     uint16_t field_0x10[8];
     uint32_t corner_color[4];
+    std::vector<uint8_t> end_padding;
 };
 
 struct TBX2Node {

@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <iostream>
 
 using json = nlohmann::json;
 
@@ -28,6 +29,15 @@ static PAN2Node& base_pan(ElementNode& n) {
             return v.base;
     }, n.node);
 }
+
+static std::string strip_prefix(const std::string& s) {
+    size_t start = 0;
+    while (start < s.size() && (uint8_t)s[start] < 32) ++start;
+    size_t end = s.find_last_not_of('\x00');
+    if (end == std::string::npos || end < start) return "";
+    return s.substr(start, end - start + 1);
+}
+
 static const PAN2Node& base_pan(const ElementNode& n) {
     return std::visit([](const auto& v) -> const PAN2Node& {
         if constexpr (std::is_same_v<std::decay_t<decltype(v)>, PAN2Node>)
@@ -80,25 +90,18 @@ static void pad_to_alignment(std::vector<uint8_t>& v, size_t align)
     }
 }
 
-static ElementNode* depth_first_search(ElementNode* node, const std::string& parent)
+static ElementNode* depth_first_search(ElementNode* node, const std::string& target)
 {
-    const std::string& name = base_pan(*node).info_tag;
-
-    if (name == parent)
-        return node;
-
     if (node->type != ElementNode::Type::PAN2)
         return nullptr;
 
-    auto& ch = as_pan2(*node).children;
-    for (auto& child : ch) {
-        const std::string& child_name = base_pan(child).info_tag;
-        if (child_name == parent)
-            return node;
-        if (child.type == ElementNode::Type::PAN2) {
-            ElementNode* result = depth_first_search(&child, parent);
-            if (result) return result;
-        }
+    if (strip_prefix(base_pan(*node).info_tag) == target) {
+        return node;
+    }
+
+    for (auto& child : as_pan2(*node).children) {
+        ElementNode* result = depth_first_search(&child, target);
+        if (result) return result;
     }
     return nullptr;
 }
@@ -146,8 +149,14 @@ static void apply_field_edit(ElementNode& node, const FieldEdit& fe)
             handled = true;
         }
     }
-    if (!handled)
-        set_pan2_field(base_pan(node));
+    if (!handled) {
+        if (node.type == ElementNode::Type::PIC2)
+            set_pan2_field(as_pic2(node).base);
+        else if (node.type == ElementNode::Type::TBX2)
+            set_pan2_field(as_tbx2(node).base);
+        else if (node.type == ElementNode::Type::WIN2)
+            set_pan2_field(std::get<WIN2Node>(node.node).base);
+    }
 }
 
 static PAN2Node make_pan2_base(const PatchEntry& e)
@@ -245,7 +254,13 @@ static void set_element_mat_no(ElementNode& node, const MAT1Section& mat1)
         return;
     }
 
-    const std::string& target = base_pan(node).info_tag;
+    const std::string& target = (node.type == ElementNode::Type::PAN2)
+    ? as_pan2(node).info_tag
+    : (node.type == ElementNode::Type::PIC2)
+        ? as_pic2(node).base.info_tag
+        : (node.type == ElementNode::Type::TBX2)
+            ? as_tbx2(node).base.info_tag
+            : std::get<WIN2Node>(node.node).base.info_tag;
     for (size_t i = 0; i < mat1.mat_name_table.mat_names.size(); ++i) {
         if (mat1.mat_name_table.mat_names[i].find(target) != std::string::npos) {
             if (node.type == ElementNode::Type::PIC2)
@@ -269,7 +284,13 @@ static void set_new_mat_no(ElementNode& node,
     if (node.type != ElementNode::Type::PIC2 && node.type != ElementNode::Type::TBX2)
         return;
 
-    const std::string& target_elem = base_pan(node).info_tag;
+    const std::string& target_elem = (node.type == ElementNode::Type::PAN2)
+    ? as_pan2(node).info_tag
+    : (node.type == ElementNode::Type::PIC2)
+        ? as_pic2(node).base.info_tag
+        : (node.type == ElementNode::Type::TBX2)
+            ? as_tbx2(node).base.info_tag
+            : std::get<WIN2Node>(node.node).base.info_tag;
     for (const auto& entry : entries) {
         if (entry.mat_name.empty()) continue;
         if (entry.element_name.find(target_elem) == std::string::npos) continue;
@@ -307,8 +328,10 @@ static void collect_pan2_parents_with_pic2(ElementNode& node,
     bool has_pic2 = false;
     for (auto& child : ch) {
         if (child.type == ElementNode::Type::PIC2) { has_pic2 = true; break; }
-        for (auto& gc : as_pan2(child).children) {
-            if (gc.type == ElementNode::Type::PIC2) { has_pic2 = true; break; }
+        if (child.type == ElementNode::Type::PAN2) {
+            for (auto& gc : as_pan2(child).children) {
+                if (gc.type == ElementNode::Type::PIC2) { has_pic2 = true; break; }
+            }
         }
         if (has_pic2) break;
     }
@@ -431,11 +454,31 @@ static uint32_t calc_elements_size(const ElementNode& node)
 void apply_patch(BLO& blo, const PatchDocument& patch)
 {
     ElementNode& root = blo.root;
+    std::function<void(const ElementNode&)> find_let05 = [&](const ElementNode& n) {
+        if (strip_prefix(base_pan(n).info_tag) == "let_05_n") {
+            if (n.type == ElementNode::Type::PAN2) {
+                for (const auto& child : std::get<PAN2Node>(n.node).children) {
+                    std::cerr << "  child info_tag=[" << base_pan(child).info_tag.size() << "] '";
+                    for (char c : base_pan(child).info_tag)
+                        std::cerr << (c >= 32 && c < 127 ? c : '?');
+                    std::cerr << "'\n";
+                }
+            }
+        }
+        if (n.type == ElementNode::Type::PAN2)
+            for (const auto& child : std::get<PAN2Node>(n.node).children)
+                find_let05(child);
+    };
+    find_let05(root);
 
     for (const auto& entry : patch.entries) {
         ElementNode* parent_node = depth_first_search(&root, entry.parent);
         if (!parent_node) {
             throw std::runtime_error("patch: parent '" + entry.parent + "' not found");
+        }
+
+        if (parent_node->type != ElementNode::Type::PAN2) {
+            throw std::runtime_error("patch: parent '" + entry.parent + "' is not a PAN2 node (type=" + std::to_string((int)parent_node->type) + ")");
         }
 
         switch (entry.action) {
@@ -457,7 +500,14 @@ void apply_patch(BLO& blo, const PatchDocument& patch)
             children.erase(
                 std::remove_if(children.begin(), children.end(),
                     [&](const ElementNode& child) {
-                        return base_pan(child).info_tag == entry.element_name;
+                        const std::string& name = (child.type == ElementNode::Type::PAN2)
+                            ? as_pan2(child).info_tag
+                            : (child.type == ElementNode::Type::PIC2)
+                                ? as_pic2(child).base.info_tag
+                                : (child.type == ElementNode::Type::TBX2)
+                                    ? as_tbx2(child).base.info_tag
+                                    : std::get<WIN2Node>(child.node).base.info_tag;
+                        return strip_prefix(name) == entry.element_name;
                     }),
                 children.end());
             break;
@@ -465,7 +515,14 @@ void apply_patch(BLO& blo, const PatchDocument& patch)
 
         case PatchAction::Edit: {
             for (auto& child : as_pan2(*parent_node).children) {
-                if (base_pan(child).info_tag == entry.element_name) {
+                const std::string& name = (child.type == ElementNode::Type::PAN2)
+                    ? as_pan2(child).info_tag
+                    : (child.type == ElementNode::Type::PIC2)
+                        ? as_pic2(child).base.info_tag
+                        : (child.type == ElementNode::Type::TBX2)
+                            ? as_tbx2(child).base.info_tag
+                            : std::get<WIN2Node>(child.node).base.info_tag;
+                if (strip_prefix(name) == entry.element_name) {
                     for (const auto& fe : entry.fields_to_edit)
                         apply_field_edit(child, fe);
                 }
@@ -477,22 +534,43 @@ void apply_patch(BLO& blo, const PatchDocument& patch)
 
     set_element_mat_no(root, blo.mat1);
     set_new_mat_no(root, patch.entries, blo.mat1);
-
     blo.blocks = 4 + calc_blocks(root);
 
     std::vector<ElementNode*> all_pan2;
     collect_pan2_parents_with_pic2(root, all_pan2);
 
     std::sort(all_pan2.begin(), all_pan2.end(), [](ElementNode* a, ElementNode* b){
-        return base_pan(*a).info_tag < base_pan(*b).info_tag;
+        const std::string& na = (a->type == ElementNode::Type::PAN2)
+            ? std::get<PAN2Node>(a->node).info_tag
+            : (a->type == ElementNode::Type::PIC2)
+                ? std::get<PIC2Node>(a->node).base.info_tag
+                : (a->type == ElementNode::Type::TBX2)
+                    ? std::get<TBX2Node>(a->node).base.info_tag
+                    : std::get<WIN2Node>(a->node).base.info_tag;
+        const std::string& nb = (b->type == ElementNode::Type::PAN2)
+            ? std::get<PAN2Node>(b->node).info_tag
+            : (b->type == ElementNode::Type::PIC2)
+                ? std::get<PIC2Node>(b->node).base.info_tag
+                : (b->type == ElementNode::Type::TBX2)
+                    ? std::get<TBX2Node>(b->node).base.info_tag
+                    : std::get<WIN2Node>(b->node).base.info_tag;
+        return na < nb;
     });
 
     std::vector<ElementNode*> node_list = remove_nested_nodes(all_pan2);
 
     ElementNode* n_all_node = nullptr;
     for (auto* n : all_pan2) {
-        if (base_pan(*n).info_tag == "n_all") { n_all_node = n; break; }
+        const std::string& tag = (n->type == ElementNode::Type::PAN2)
+            ? std::get<PAN2Node>(n->node).info_tag
+            : (n->type == ElementNode::Type::PIC2)
+                ? std::get<PIC2Node>(n->node).base.info_tag
+                : (n->type == ElementNode::Type::TBX2)
+                    ? std::get<TBX2Node>(n->node).base.info_tag
+                    : std::get<WIN2Node>(n->node).base.info_tag;
+        if (strip_prefix(tag) == "n_all") { n_all_node = n; break; }
     }
+
     if (n_all_node) {
         bool has_direct_pic2 = false;
         for (const auto& child : std::get<PAN2Node>(n_all_node->node).children)
@@ -502,7 +580,14 @@ void apply_patch(BLO& blo, const PatchDocument& patch)
             const std::string insert_name = "n_all";
             size_t idx = node_list.size();
             for (size_t i = 0; i < node_list.size(); ++i) {
-                if (base_pan(*node_list[i]).info_tag > insert_name) { idx = i; break; }
+                const std::string& tag = (node_list[i]->type == ElementNode::Type::PAN2)
+                    ? std::get<PAN2Node>(node_list[i]->node).info_tag
+                    : (node_list[i]->type == ElementNode::Type::PIC2)
+                        ? std::get<PIC2Node>(node_list[i]->node).base.info_tag
+                        : (node_list[i]->type == ElementNode::Type::TBX2)
+                            ? std::get<TBX2Node>(node_list[i]->node).base.info_tag
+                            : std::get<WIN2Node>(node_list[i]->node).base.info_tag;
+                if (strip_prefix(tag) > insert_name) { idx = i; break; }
             }
             node_list.insert(node_list.begin() + idx, n_all_node);
         }
@@ -513,7 +598,6 @@ void apply_patch(BLO& blo, const PatchDocument& patch)
         get_pic2s(*node, pic2_list);
 
     reassign_unk_indexes(root, pic2_list);
-
     blo.size = 8 + calc_elements_size(root);
 }
 
