@@ -45,3 +45,5 @@ install(EXPORT ReservoirTargets
     NAMESPACE Reservoir::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Reservoir
 )
+
+add_library(Reservoir::Reservoir ALIAS Reservoir)
