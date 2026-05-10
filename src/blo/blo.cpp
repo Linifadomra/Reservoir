@@ -558,7 +558,11 @@ std::vector<uint8_t> serialize_blo(const BLO& blo)
     serialize_mat1_section(o, blo.mat1);
     serialize_element(blo.root, o);
 
-    o.insert(o.end(), blo.padding.begin(), blo.padding.end());
+    static constexpr uint8_t ext1[4] = {'E','X','T','1'};
+    if (blo.padding.size() >= 4 && std::memcmp(blo.padding.data(), ext1, 4) == 0)
+        ;
+    else
+        o.insert(o.end(), blo.padding.begin(), blo.padding.end());
     return o;
 }
 
