@@ -482,7 +482,7 @@ BLO parse_blo(const std::vector<uint8_t>& data)
 
     BLO blo;
     read_tag(d, p, blo.tag);
-    read_tag(d, p, blo.type);
+    std::memcpy(blo.type, d+p, 4); p += 4; 
     blo.size   = rd_u32(d, p);
     blo.blocks = rd_u32(d, p);
     std::memcpy(blo.header_padding, d+p, 16); p += 16;
