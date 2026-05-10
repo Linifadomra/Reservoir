@@ -52,16 +52,6 @@ def diff_outputs():
     only_in_cpp = cpp_files - py_files
     common      = py_files & cpp_files
 
-    if only_in_py:
-        print(f"\n[only in Python output]")
-        for name in sorted(only_in_py):
-            print(f"  {name}")
-
-    if only_in_cpp:
-        print(f"\n[only in C++ output]")
-        for name in sorted(only_in_cpp):
-            print(f"  {name}")
-
     total_diffs = 0
     perfect     = []
 
