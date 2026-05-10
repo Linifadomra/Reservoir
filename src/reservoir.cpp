@@ -266,10 +266,23 @@ std::vector<PatchResult> process_layout(
             if (arc) {
                 uint8_t* owned = static_cast<uint8_t*>(malloc(out_bytes.size()));
                 memcpy(owned, out_bytes.data(), out_bytes.size());
-                gc_arc_add_file(arc, "scrn",
-                                out_name.c_str(),
-                                owned,
-                                out_bytes.size());
+
+                int replaced = -1;
+                int count = gc_arc_entry_count(arc);
+                for (int i = 0; i < count; i++) {
+                    const GCEntry* e = gc_arc_entry(arc, i);
+                    if (e && e->name && to_lower(e->name) == to_lower(out_name)) {
+                        gc_arc_replace_file(arc, i, owned, out_bytes.size());
+                        replaced = i;
+                        break;
+                    }
+                }
+                if (replaced < 0) {
+                    gc_arc_add_file(arc, "scrn",
+                                    out_name.c_str(),
+                                    owned,
+                                    out_bytes.size());
+                }
             } else {
                 std::cerr << "arc '" << patch.header.arc << "' not found for "
                         << out_name << "\n";
