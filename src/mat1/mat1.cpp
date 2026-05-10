@@ -255,8 +255,6 @@ void serialize_mat_init_idx_section(std::vector<uint8_t>& out,
     write_raw(out, s.padding.data(), s.padding.size());
 }
 
-
-
 void parse_mat_name_table_section(const uint8_t* base, const MAT1SectionOffsets& offsets,
                                    MatNameTableSection& out)
 {
@@ -266,28 +264,18 @@ void parse_mat_name_table_section(const uint8_t* base, const MAT1SectionOffsets&
 
     out.header_entries.resize(out.num_entries);
     for (auto& e : out.header_entries) {
-        e.id              = read_be16(base, &pos);
-        e.name_offset     = read_be16(base, &pos);
+        e.id          = read_be16(base, &pos);
+        e.name_offset = read_be16(base, &pos);
     }
-
-
-
 
     out.mat_names.resize(out.num_entries);
     for (uint32_t i = 0; i < out.num_entries; ++i) {
         if (i + 1 < out.num_entries) {
-            uint16_t cur  = out.header_entries[i].name_offset;
-            uint16_t next = out.header_entries[i + 1].name_offset;
-            uint32_t len  = next - cur;
-            size_t name_pos = offsets.mat_name_table + 4u + out.num_entries * 4u + cur - (out.num_entries * 4u + 4u - 4u);
-
-            size_t name_block = offsets.mat_name_table + 4u + out.num_entries * 4u;
             out.mat_names[i].assign(
-                base + name_block + out.header_entries[i].name_offset,
-                base + name_block + out.header_entries[i + 1].name_offset);
+                base + offsets.mat_name_table + out.header_entries[i].name_offset,
+                base + offsets.mat_name_table + out.header_entries[i + 1].name_offset);
         } else {
-            size_t name_block = offsets.mat_name_table + 4u + out.num_entries * 4u;
-            size_t start = name_block + out.header_entries[i].name_offset;
+            size_t start = offsets.mat_name_table + out.header_entries[i].name_offset;
             size_t end = start;
             while (base[end] != '\0') ++end;
             ++end;
@@ -295,9 +283,9 @@ void parse_mat_name_table_section(const uint8_t* base, const MAT1SectionOffsets&
         }
     }
 
-    size_t name_block = offsets.mat_name_table + 4u + out.num_entries * 4u;
-    size_t names_end = name_block;
-    for (auto& n : out.mat_names) names_end += n.size();
+    size_t names_end = offsets.mat_name_table
+                       + out.header_entries[out.num_entries - 1].name_offset
+                       + out.mat_names.back().size();
 
     uint32_t nxt = next_valid_offset(offsets, offsets.mat_name_table);
     if (nxt == 0) nxt = (uint32_t)names_end;
