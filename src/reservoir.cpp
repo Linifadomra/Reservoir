@@ -77,7 +77,10 @@ static void load_blos_from_arc(const fs::path& arc_path,
     int count = gc_arc_entry_count(arc);
     for (int i = 0; i < count; ++i) {
         const GCEntry* entry = gc_arc_entry(arc, i);
-        if (!entry) continue;
+        if (!entry || !entry->name) { 
+            std::cerr << "Arc failed to load or has no entry\n"; 
+            continue; 
+        }
 
         std::string name = entry->name;
         if (to_lower(name).rfind(".blo") == std::string::npos) continue;
