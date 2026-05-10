@@ -1,0 +1,287 @@
+[
+    {
+        "blo_file": "zelda_option_select_menu.blo",
+        "action": "add",
+        "new_filename": "zelda_cust_option_select_menu.blo",
+        "arc": "optres.arc"
+    },
+    [
+        {
+            "action": "add",
+            "element_name": "\u0000l_arrow",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "n_all",
+            "type": "PAN2",
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 40.0,
+            "size_y": 45.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": -260.0,
+            "offset_y": 0.0,
+            "has_children": "Yes"
+        },
+        {
+            "action": "add",
+            "element_name": "\u0000r_arrow",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "n_all",
+            "type": "PAN2",
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 40.0,
+            "size_y": 45.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": 263.5,
+            "offset_y": 0.0,
+            "has_children": "Yes"
+        },
+        {
+            "action": "add",
+            "element_name": "larowpic",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "l_arrow",
+            "type": "PIC2",
+            "unk_idx": 0,
+            "mat_idx": 76,
+            "unk_indexes": [0, 0, 0, 0],
+            "uv_coords": [0, 0, 0, 256, 256, 0, 256, 256],
+            "colors": [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 30.0,
+            "size_y": 30.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": 0.0,
+            "offset_y": 0.0,
+            "has_children": "No"
+        },
+        {
+            "action": "add",
+            "element_name": "rarowpic",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "r_arrow",
+            "type": "PIC2",
+            "unk_idx": 0,
+            "mat_idx": 77,
+            "unk_indexes": [0, 0, 0, 0],
+            "uv_coords": [0, 0, 0, 256, 256, 0, 256, 256],
+            "colors": [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 30.0,
+            "size_y": 30.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": 0.0,
+            "offset_y": 0.0,
+            "has_children": "No"
+        },
+        {
+            "action": "add",
+            "element_name": "y_set_p5",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "let_05_n",
+            "type": "PAN2",
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 162.0,
+            "size_y": 31.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": 98.0,
+            "offset_y": 0.0,
+            "has_children": "Yes"
+        },
+        {
+            "action": "add",
+            "element_name": "y_set_l5",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "y_set_p5",
+            "type": "PIC2",
+            "unk_idx": 0,
+            "mat_idx": 76,
+            "unk_indexes": [0, 0, 0, 0],
+            "uv_coords": [0, 0, 256, 0, 0, 256, 256, 256],
+            "colors": [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 32.0,
+            "size_y": 31.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": -99.0,
+            "offset_y": 0.0,
+            "has_children": "No"
+        },
+        {
+            "action": "add",
+            "element_name": "y_set_r5",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "y_set_p5",
+            "type": "PIC2",
+            "unk_idx": 0,
+            "mat_idx": 77,
+            "unk_indexes": [0, 0, 0, 0],
+            "uv_coords": [0, 0, 256, 0, 0, 256, 256, 256],
+            "colors": [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 32.0,
+            "size_y": 31.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": 98.0,
+            "offset_y": 0.0,
+            "has_children": "No"
+        },
+        {
+            "action": "edit",
+            "element_name": "mw_n_3",
+            "parent": "menu_n3",
+            "fields_to_edit": [
+                "translate_y"
+            ],
+            "translate_y-new_value": 1.0,
+            "translate_y-type": "float"
+        },
+        {
+            "action": "edit",
+            "element_name": "mw_n_5",
+            "parent": "menu_n5",
+            "fields_to_edit": [
+                "size_x",
+                "size_y",
+                "translate_x"
+            ],
+            "size_x-new_value": 160.0,
+            "size_x-type": "float",
+            "size_y-new_value": 19.0,
+            "size_y-type": "float",
+            "translate_x-new_value": 99.0,
+            "translate_x-type": "float"
+        },
+        {
+            "action": "edit",
+            "element_name": "mw_bs_5",
+            "parent": "mw_n_5",
+            "fields_to_edit": [
+                "size_x",
+                "base_position",
+                "translate_x"
+            ],
+            "size_x-new_value": 164.0,
+            "size_x-type": "float",
+            "base_position-new_value": 4,
+            "base_position-type": "u8",
+            "translate_x-new_value": 0.0,
+            "translate_x-type": "float",
+            "mat_name": "mw_bs_4"
+        },
+        {
+            "action": "edit",
+            "element_name": "c_grl_04",
+            "parent": "sha_04_n",
+            "fields_to_edit": [
+                "size_x",
+                "translate_x"
+            ],
+            "size_x-new_value": 165.0,
+            "size_x-type": "float",
+            "translate_x-new_value": 280.0,
+            "translate_x-type": "float"
+        },
+        {
+            "action": "delete",
+            "element_name": "p_btn_n",
+            "parent": "let_05_n"
+        },
+        {
+            "action": "delete",
+            "element_name": "cont_t_n",
+            "parent": "mw_n_5"
+        },
+        {
+            "action": "delete",
+            "element_name": "menu_t5s",
+            "parent": "menu_t5n"
+        },
+        {
+            "action": "delete",
+            "element_name": "menu_t5",
+            "parent": "menu_t5n"
+        },
+        {
+            "action": "delete",
+            "element_name": "menu_t4s",
+            "parent": "menu_t4n"
+        },
+        {
+            "action": "delete",
+            "element_name": "menu_t4",
+            "parent": "menu_t4n"
+        },
+        {
+            "action": "delete",
+            "element_name": "menu_t3s",
+            "parent": "menu_t3n"
+        },
+        {
+            "action": "delete",
+            "element_name": "menu_t3",
+            "parent": "menu_t3n"
+        },
+        {
+            "action": "delete",
+            "element_name": "menu_t2s",
+            "parent": "menu_t2n"
+        },
+        {
+            "action": "delete",
+            "element_name": "menu_t2",
+            "parent": "menu_t2n"
+        },
+        {
+            "action": "delete",
+            "element_name": "menu_t1s",
+            "parent": "menu_t1n"
+        },
+        {
+            "action": "delete",
+            "element_name": "menu_t1",
+            "parent": "menu_t1n"
+        },
+        {
+            "action": "delete",
+            "element_name": "menu_t0s",
+            "parent": "menu_t0n"
+        },
+        {
+            "action": "delete",
+            "element_name": "menu_t0",
+            "parent": "menu_t0n"
+        },
+        {
+            "action": "delete",
+            "element_name": "menu_n",
+            "parent": "n_all"
+        }
+    ]
+]

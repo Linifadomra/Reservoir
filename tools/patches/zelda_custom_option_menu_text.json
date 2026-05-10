@@ -1,0 +1,468 @@
+[
+    {
+        "blo_file": "zelda_option_menu_text.blo",
+        "action": "add",
+        "new_filename": "zelda_cust_option_menu_text.blo",
+        "arc": "optres.arc"
+    },
+    [
+        {
+            "action": "add",
+            "element_name": "let_05_n",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "n_all",
+            "type": "PAN2",
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 452.0,
+            "size_y": 30.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": 3.0,
+            "offset_y": 108.0,
+            "has_children": "Yes"
+        },
+        {
+            "action": "add",
+            "element_name": "menuapn5",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "let_05_n",
+            "type": "PAN2",
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 160.0,
+            "size_y": 19.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": 98.0,
+            "offset_y": 0.0,
+            "has_children": "Yes"
+        },
+        {
+            "action": "add",
+            "element_name": "menut510",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "menuapn5",
+            "type": "TBX2",
+            "unk_idx": 0,
+            "mat_idx": 6,
+            "char_space": 1,
+            "line_space": 24,
+            "font_size_x": 15,
+            "font_size_y": 15,
+            "h_bind": "Center",
+            "v_bind": "Center",
+            "char_color": [
+                255,
+                255,
+                255,
+                255
+            ],
+            "grad_color": [
+                255,
+                255,
+                255,
+                255
+            ],
+            "connected": 1,
+            "text_cutoff": 14,
+            "text": "ABCDEFGHIJKLM",
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 200.0,
+            "size_y": 37.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": 1.0,
+            "offset_y": 1.0,
+            "has_children": "No",
+            "mat_name": "menut321"
+        },
+        {
+            "action": "add",
+            "element_name": "menut5a9",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "menuapn5",
+            "type": "TBX2",
+            "unk_idx": 0,
+            "mat_idx": 7,
+            "char_space": 1,
+            "line_space": 24,
+            "font_size_x": 15,
+            "font_size_y": 15,
+            "h_bind": "Center",
+            "v_bind": "Center",
+            "char_color": [
+                255,
+                255,
+                255,
+                255
+            ],
+            "grad_color": [
+                255,
+                255,
+                255,
+                255
+            ],
+            "connected": 1,
+            "text_cutoff": 14,
+            "text": "ABCDEFGHIJKLM",
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 200.0,
+            "size_y": 37.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": 0.0,
+            "offset_y": 0.0,
+            "has_children": "No",
+            "mat_name": "menut320"
+        },
+        {
+            "action": "add",
+            "element_name": "menut5a8",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "menuapn5",
+            "type": "TBX2",
+            "unk_idx": 0,
+            "mat_idx": 8,
+            "char_space": 1,
+            "line_space": 24,
+            "font_size_x": 15,
+            "font_size_y": 15,
+            "h_bind": "Center",
+            "v_bind": "Center",
+            "char_color": [
+                255,
+                255,
+                255,
+                255
+            ],
+            "grad_color": [
+                255,
+                255,
+                255,
+                255
+            ],
+            "connected": 1,
+            "text_cutoff": 14,
+            "text": "ABCDEFGHIJKLM",
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 200.0,
+            "size_y": 37.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": 152.0,
+            "offset_y": 1.0,
+            "has_children": "No",
+            "mat_name": "menut319"
+        },
+        {
+            "action": "add",
+            "element_name": "menut5a7",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "menuapn5",
+            "type": "TBX2",
+            "unk_idx": 0,
+            "mat_idx": 9,
+            "char_space": 1,
+            "line_space": 24,
+            "font_size_x": 15,
+            "font_size_y": 15,
+            "h_bind": "Center",
+            "v_bind": "Center",
+            "char_color": [
+                255,
+                255,
+                255,
+                255
+            ],
+            "grad_color": [
+                255,
+                255,
+                255,
+                255
+            ],
+            "connected": 1,
+            "text_cutoff": 14,
+            "text": "ABCDEFGHIJKLM",
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 200.0,
+            "size_y": 37.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": 151.0,
+            "offset_y": 0.0,
+            "has_children": "No",
+            "mat_name": "menut318"
+        },
+        {
+            "action": "add",
+            "element_name": "menut5a6",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "menuapn5",
+            "type": "TBX2",
+            "unk_idx": 0,
+            "mat_idx": 10,
+            "char_space": 1,
+            "line_space": 24,
+            "font_size_x": 15,
+            "font_size_y": 15,
+            "h_bind": "Center",
+            "v_bind": "Center",
+            "char_color": [
+                255,
+                255,
+                255,
+                255
+            ],
+            "grad_color": [
+                255,
+                255,
+                255,
+                255
+            ],
+            "connected": 1,
+            "text_cutoff": 14,
+            "text": "ABCDEFGHIJKLM",
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 200.0,
+            "size_y": 37.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": -151.0,
+            "offset_y": 1.0,
+            "has_children": "No",
+            "mat_name": "menut317"
+        },
+        {
+            "action": "add",
+            "element_name": "menut5a5",
+            "secondary_name": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "parent": "menuapn5",
+            "type": "TBX2",
+            "unk_idx": 0,
+            "mat_idx": 11,
+            "char_space": 1,
+            "line_space": 24,
+            "font_size_x": 15,
+            "font_size_y": 15,
+            "h_bind": "Center",
+            "v_bind": "Center",
+            "char_color": [
+                255,
+                255,
+                255,
+                255
+            ],
+            "grad_color": [
+                255,
+                255,
+                255,
+                255
+            ],
+            "connected": 1,
+            "text_cutoff": 14,
+            "text": "ABCDEFGHIJKLM",
+            "bck_idx": 0,
+            "enabled": 1,
+            "anchor": "Center",
+            "size_x": 200.0,
+            "size_y": 37.0,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "rotation": 0.0,
+            "offset_x": -152.0,
+            "offset_y": 0.0,
+            "has_children": "No",
+            "mat_name": "menut316"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut0as",
+            "parent": "menuapn0"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut0a",
+            "parent": "menuapn0"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut0a2",
+            "parent": "menuapn0"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut0a1",
+            "parent": "menuapn0"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut0a4",
+            "parent": "menuapn0"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut0a3",
+            "parent": "menuapn0"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut1as",
+            "parent": "menuapn1"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut1a",
+            "parent": "menuapn1"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut1a2",
+            "parent": "menuapn1"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut1a1",
+            "parent": "menuapn1"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut1a4",
+            "parent": "menuapn1"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut1a3",
+            "parent": "menuapn1"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut2as",
+            "parent": "menuapn2"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut2a",
+            "parent": "menuapn2"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut2a2",
+            "parent": "menuapn2"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut2a1",
+            "parent": "menuapn2"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut2a4",
+            "parent": "menuapn2"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut2a3",
+            "parent": "menuapn2"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut3a5",
+            "parent": "menuapn3"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut3a6",
+            "parent": "menuapn3"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut3a7",
+            "parent": "menuapn3"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut3a8",
+            "parent": "menuapn3"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut3a9",
+            "parent": "menuapn3"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut310",
+            "parent": "menuapn3"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut3as",
+            "parent": "menuapn4"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut3a",
+            "parent": "menuapn4"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut3a2",
+            "parent": "menuapn4"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut3a1",
+            "parent": "menuapn4"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut3a4",
+            "parent": "menuapn4"
+        },
+        {
+            "action": "delete",
+            "element_name": "menut3a3",
+            "parent": "menuapn4"
+        },
+        {
+            "action": "edit",
+            "element_name": "menut510",
+            "parent": "menuapn5",
+            "fields_to_edit": [
+                "translate_y"
+            ],
+            "translate_y-new_value": -1.0,
+            "translate_y-type": "float"
+        },
+        {
+            "action": "edit",
+            "element_name": "menut5a9",
+            "parent": "menuapn5",
+            "fields_to_edit": [
+                "translate_y"
+            ],
+            "translate_y-new_value": -2.0,
+            "translate_y-type": "float"
+        }
+    ]
+]

@@ -67,4 +67,9 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
-tools/
+
+# Diffing stuff
+**/game_data*/
+**/output-*/
+**/__pycache__/
+tools/.pydone

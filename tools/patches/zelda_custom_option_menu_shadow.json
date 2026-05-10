@@ -1,0 +1,81 @@
+[
+    {
+        "blo_file": "zelda_option_menu_shadow.blo",
+        "action": "add",
+        "new_filename": "zelda_cust_option_menu_shadow.blo",
+        "arc": "optres.arc"
+    },
+    [
+        {
+            "action": "edit",
+            "element_name": "mw_n_5",
+            "parent": "let_05_n",
+            "fields_to_edit": [
+                "size_x",
+                "translate_x"
+            ],
+            "size_x-new_value": 162.0,
+            "size_x-type": "float",
+            "translate_x-new_value": 98.0,
+            "translate_x-type": "float"
+        },
+        {
+            "action": "edit",
+            "element_name": "mw_grl_5",
+            "parent": "mw_n_5",
+            "fields_to_edit": [
+                "size_x",
+                "translate_x"
+            ],
+            "size_x-new_value": 15.0,
+            "size_x-type": "float",
+            "translate_x-new_value": -81.0,
+            "translate_x-type": "float"
+        },
+        {
+            "action": "edit",
+            "element_name": "mw_grr_5",
+            "parent": "mw_n_5",
+            "fields_to_edit": [
+                "size_x",
+                "translate_x"
+            ],
+            "size_x-new_value": 15.0,
+            "size_x-type": "float",
+            "translate_x-new_value": 81.0,
+            "translate_x-type": "float"
+        },
+        {
+            "action": "edit",
+            "element_name": "mw_gru_5",
+            "parent": "mw_n_5",
+            "fields_to_edit": [
+                "size_x",
+                "base_position",
+                "translate_x"
+            ],
+            "size_x-new_value": 162.0,
+            "size_x-type": "float",
+            "base_position-new_value": 0,
+            "base_position-type": "u8",
+            "translate_x-new_value": -81.0,
+            "translate_x-type": "float"
+        },
+        {
+            "action": "edit",
+            "element_name": "mw_grd_5",
+            "parent": "mw_n_5",
+            "fields_to_edit": [
+                "size_x",
+                "base_position",
+                "translate_x"
+            ],
+            "size_x-new_value": 162.0,
+            "size_x-type": "float",
+            "base_position-new_value": 0,
+            "base_position-type": "u8",
+            "translate_x-new_value": -81.0,
+            "translate_x-type": "float"
+        }
+    ]
+]
