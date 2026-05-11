@@ -8,13 +8,15 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(RESERVOIR_SHARED "Build Reservoir as a shared library" OFF)
 option(RESERVOIR_BUILD_BINARY "Build Reservoir as a CLI tool" OFF)
 
-include(FetchContent)
-FetchContent_Declare(
-    Confluence
-    GIT_REPOSITORY https://github.com/Linifadomra/Confluence
-    GIT_TAG main
-)
-FetchContent_MakeAvailable(Confluence)
+if(RESERVOIR_BUILD_BINARY) 
+    include(FetchContent)
+    FetchContent_Declare(
+        Confluence
+        GIT_REPOSITORY https://github.com/Linifadomra/Confluence
+        GIT_TAG main
+    )
+    FetchContent_MakeAvailable(Confluence)
+endif()
 
 if(NOT TARGET Confluence::confluence)
     add_library(Confluence::confluence ALIAS confluence)
