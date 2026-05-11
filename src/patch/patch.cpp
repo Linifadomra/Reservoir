@@ -249,6 +249,9 @@ static ElementNode make_tbx2_node(const PatchEntry& e)
     t.end_padding = text_bytes;
     pad_to_alignment(t.end_padding, 8);
     n.node = std::move(t);
+    t.field_0x19[0] = 0x52;  // 'R'
+    t.field_0x19[1] = 0x45;  // 'E'
+    t.field_0x19[2] = 0x53;  // 'S'
     return n;
 }
 
@@ -260,15 +263,17 @@ static void set_element_mat_no(ElementNode& node, const MAT1Section& mat1)
         return;
     }
 
-    const std::string& target = (node.type == ElementNode::Type::PAN2)
-    ? as_pan2(node).info_tag
-    : (node.type == ElementNode::Type::PIC2)
-        ? as_pic2(node).base.info_tag
-        : (node.type == ElementNode::Type::TBX2)
-            ? as_tbx2(node).base.info_tag
-            : std::get<WIN2Node>(node.node).base.info_tag;
+    const std::string target = strip_prefix(
+        (node.type == ElementNode::Type::PIC2)
+            ? as_pic2(node).base.info_tag
+            : (node.type == ElementNode::Type::TBX2)
+                ? as_tbx2(node).base.info_tag
+                : std::get<WIN2Node>(node.node).base.info_tag);
+
     for (size_t i = 0; i < mat1.mat_name_table.mat_names.size(); ++i) {
-        if (mat1.mat_name_table.mat_names[i].find(target) != std::string::npos) {
+        std::string mat_name = mat1.mat_name_table.mat_names[i];
+        mat_name.erase(std::find(mat_name.begin(), mat_name.end(), '\0'), mat_name.end());
+        if (mat_name.find(target) != std::string::npos) {
             if (node.type == ElementNode::Type::PIC2)
                 as_pic2(node).material_num = (uint16_t)i;
             else if (node.type == ElementNode::Type::TBX2)
@@ -290,19 +295,19 @@ static void set_new_mat_no(ElementNode& node,
     if (node.type != ElementNode::Type::PIC2 && node.type != ElementNode::Type::TBX2)
         return;
 
-    const std::string& target_elem = (node.type == ElementNode::Type::PAN2)
-    ? as_pan2(node).info_tag
-    : (node.type == ElementNode::Type::PIC2)
-        ? as_pic2(node).base.info_tag
-        : (node.type == ElementNode::Type::TBX2)
-            ? as_tbx2(node).base.info_tag
-            : std::get<WIN2Node>(node.node).base.info_tag;
+    const std::string target_elem = strip_prefix(
+        (node.type == ElementNode::Type::PIC2)
+            ? as_pic2(node).base.info_tag
+            : as_tbx2(node).base.info_tag);
+
     for (const auto& entry : entries) {
         if (entry.mat_name.empty()) continue;
-        if (entry.element_name.find(target_elem) == std::string::npos) continue;
+        if (entry.element_name != target_elem) continue;
         if (entry.action != PatchAction::Add && entry.action != PatchAction::Edit) continue;
         for (size_t i = 0; i < mat1.mat_name_table.mat_names.size(); ++i) {
-            if (mat1.mat_name_table.mat_names[i].find(entry.mat_name) != std::string::npos) {
+            std::string mat_name = mat1.mat_name_table.mat_names[i];
+            mat_name.erase(std::find(mat_name.begin(), mat_name.end(), '\0'), mat_name.end());
+            if (mat_name.find(entry.mat_name) != std::string::npos) {
                 if (node.type == ElementNode::Type::PIC2)
                     as_pic2(node).material_num = (uint16_t)i;
                 else
@@ -318,8 +323,11 @@ static int calc_blocks(const ElementNode& node)
     if (node.type != ElementNode::Type::PAN2)
         return 2;
 
-    const auto& ch = as_pan2(node).children; 
-    int count = ch.empty() ? 2 : 2;
+    const auto& ch = as_pan2(node).children;
+    if (ch.empty())
+        return 0;
+
+    int count = 2;
     for (const auto& child : ch)
         count += calc_blocks(child);
     return count;

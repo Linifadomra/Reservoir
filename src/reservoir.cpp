@@ -116,19 +116,21 @@ static void load_blos_from_arc(const fs::path& arc_path,
 
 static void finalize_blo(BLO& blo)
 {
-    auto original_padding = blo.padding;
+    bool needs_ext1 = !blo.padding.empty() &&
+                      blo.padding[0] == 'E' && blo.padding[1] == 'X' &&
+                      blo.padding[2] == 'T' && blo.padding[3] == '1';
+
     blo.padding.clear();
-    auto tmp = serialize_blo(blo);
-    size_t i = 0;
-    while (tmp.size() % 16 != 0) {
-        uint8_t byte = (i < original_padding.size())
-            ? original_padding[i]
-            : PADDING_BYTES[i % PADDING_LENGTH];
-        blo.padding.push_back(byte);
-        tmp.push_back(byte);
-        ++i;
+
+    if (needs_ext1) {
+        uint8_t ext1_block[8] = {'E','X','T','1', 0,0,0,8};
+        blo.padding.insert(blo.padding.end(), ext1_block, ext1_block + 8);
+        for (int i = 0; i < 16; i++)
+            blo.padding.push_back(PADDING_BYTES[i % 8]);
     }
-    blo.size = static_cast<uint32_t>(tmp.size());
+
+    auto tmp = serialize_blo(blo);
+    blo.size = static_cast<uint32_t>(tmp.size()) - 8;
 }
 
 std::vector<PatchResult> process_layout(
