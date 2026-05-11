@@ -230,6 +230,7 @@ static ElementNode make_tbx2_node(const PatchEntry& e)
     TBX2Node t{};
     t.base              = make_pan2_base(e);
     t.pan2_sub_tag_size = 72;          // embedded 'pan2' sub-header, size=72
+    t.field_0x0         = 48;
     t.field_0x2         = (uint16_t)e.unk_idx;
     t.material_num      = 0;
     t.char_space        = (uint16_t)e.char_space;
@@ -248,10 +249,10 @@ static ElementNode make_tbx2_node(const PatchEntry& e)
     t.field_0x1e = (uint16_t)text_bytes.size();
     t.end_padding = text_bytes;
     pad_to_alignment(t.end_padding, 8);
-    n.node = std::move(t);
     t.field_0x19[0] = 0x52;  // 'R'
     t.field_0x19[1] = 0x45;  // 'E'
     t.field_0x19[2] = 0x53;  // 'S'
+    n.node = std::move(t);
     return n;
 }
 
@@ -263,22 +264,20 @@ static void set_element_mat_no(ElementNode& node, const MAT1Section& mat1)
         return;
     }
 
-    const std::string target = strip_prefix(
+    const std::string& target =
         (node.type == ElementNode::Type::PIC2)
             ? as_pic2(node).base.info_tag
             : (node.type == ElementNode::Type::TBX2)
                 ? as_tbx2(node).base.info_tag
-                : std::get<WIN2Node>(node.node).base.info_tag);
+                : std::get<WIN2Node>(node.node).base.info_tag;
 
     for (size_t i = 0; i < mat1.mat_name_table.mat_names.size(); ++i) {
-        std::string mat_name = mat1.mat_name_table.mat_names[i];
-        mat_name.erase(std::find(mat_name.begin(), mat_name.end(), '\0'), mat_name.end());
+        const std::string& mat_name = mat1.mat_name_table.mat_names[i];
         if (mat_name.find(target) != std::string::npos) {
             if (node.type == ElementNode::Type::PIC2)
                 as_pic2(node).material_num = (uint16_t)i;
             else if (node.type == ElementNode::Type::TBX2)
                 as_tbx2(node).material_num = (uint16_t)i;
-            break;
         }
     }
 }
@@ -295,24 +294,22 @@ static void set_new_mat_no(ElementNode& node,
     if (node.type != ElementNode::Type::PIC2 && node.type != ElementNode::Type::TBX2)
         return;
 
-    const std::string target_elem = strip_prefix(
+    const std::string& target_elem =
         (node.type == ElementNode::Type::PIC2)
             ? as_pic2(node).base.info_tag
-            : as_tbx2(node).base.info_tag);
+            : as_tbx2(node).base.info_tag;
 
     for (const auto& entry : entries) {
         if (entry.mat_name.empty()) continue;
-        if (entry.element_name != target_elem) continue;
+        if (entry.element_name.find(target_elem) == std::string::npos) continue;
         if (entry.action != PatchAction::Add && entry.action != PatchAction::Edit) continue;
         for (size_t i = 0; i < mat1.mat_name_table.mat_names.size(); ++i) {
-            std::string mat_name = mat1.mat_name_table.mat_names[i];
-            mat_name.erase(std::find(mat_name.begin(), mat_name.end(), '\0'), mat_name.end());
+            const std::string& mat_name = mat1.mat_name_table.mat_names[i];
             if (mat_name.find(entry.mat_name) != std::string::npos) {
                 if (node.type == ElementNode::Type::PIC2)
                     as_pic2(node).material_num = (uint16_t)i;
                 else
                     as_tbx2(node).material_num = (uint16_t)i;
-                break;
             }
         }
     }
@@ -472,22 +469,6 @@ static uint32_t calc_elements_size(const ElementNode& node)
 void apply_patch(BLO& blo, const PatchDocument& patch)
 {
     ElementNode& root = blo.root;
-    std::function<void(const ElementNode&)> find_let05 = [&](const ElementNode& n) {
-        if (strip_prefix(base_pan(n).info_tag) == "let_05_n") {
-            if (n.type == ElementNode::Type::PAN2) {
-                for (const auto& child : std::get<PAN2Node>(n.node).children) {
-                    std::cerr << "  child info_tag=[" << base_pan(child).info_tag.size() << "] '";
-                    for (char c : base_pan(child).info_tag)
-                        std::cerr << (c >= 32 && c < 127 ? c : '?');
-                    std::cerr << "'\n";
-                }
-            }
-        }
-        if (n.type == ElementNode::Type::PAN2)
-            for (const auto& child : std::get<PAN2Node>(n.node).children)
-                find_let05(child);
-    };
-    find_let05(root);
 
     for (const auto& entry : patch.entries) {
         ElementNode* parent_node = depth_first_search(&root, entry.parent);

@@ -88,8 +88,9 @@ static void load_blos_from_arc(const fs::path& arc_path,
         if (!entry || !entry->name || entry->name[0] == '\0') continue;
 
         std::string name = entry->name;
-        if (to_lower(name).rfind(".blo") == std::string::npos) continue;
-        if (to_lower(name) == "file_error.blo") continue;
+        std::string lower = to_lower(name);
+        if (lower.rfind(".blo") == std::string::npos) continue;
+        if (lower.ends_with("file_error.blo")) continue;
 
         void*  raw  = nullptr;
         size_t size = 0;
@@ -123,13 +124,17 @@ static void finalize_blo(BLO& blo)
         blo.padding.clear();
 
     auto tmp = serialize_blo(blo);
-    uint32_t sz = static_cast<uint32_t>(tmp.size()) - 8;
-    size_t i = blo.padding.size();
-    while (needs_ext1 && sz % 16 != 0) {
-        blo.padding.push_back(PADDING_BYTES[i % 8]);
-        i++;
-        sz++;
-        tmp.push_back(0);
+    uint32_t sz;
+    if (needs_ext1) {
+        sz = static_cast<uint32_t>(tmp.size() - (blo.padding.size() - 8));
+        size_t i = 0;
+        while (sz % 16 != 0) {
+            blo.padding.push_back(PADDING_BYTES[i % PADDING_LENGTH]);
+            i++;
+            sz++;
+        }
+    } else {
+        sz = static_cast<uint32_t>(tmp.size());
     }
     blo.size = sz;
 }

@@ -12,9 +12,16 @@ FetchContent_MakeAvailable(Confluence)
 
 add_executable(reservoir_cli cli.cpp)
 target_include_directories(reservoir_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(reservoir_cli PRIVATE
-    -Wl,--start-group
-    Reservoir
-    confluence
-    -Wl,--end-group
-)
+if(APPLE)
+    target_link_libraries(reservoir_cli PRIVATE
+        Reservoir
+        confluence
+    )
+else()
+    target_link_libraries(reservoir_cli PRIVATE
+        -Wl,--start-group
+        Reservoir
+        confluence
+        -Wl,--end-group
+    )
+endif()
