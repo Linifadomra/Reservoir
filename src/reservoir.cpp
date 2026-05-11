@@ -14,6 +14,10 @@
 #include <unordered_map>
 #include <vector>
 
+#ifdef _WIN32
+    #define strcasecmp _stricmp
+#endif
+
 namespace fs = std::filesystem;
 
 namespace Reservoir {
