@@ -18,8 +18,8 @@ struct PatchResult {
 
 std::vector<PatchResult> process_layout(
     const std::filesystem::path& layout_folder,
-    const std::filesystem::path& patch_folder,
-    const std::filesystem::path& output_folder);
+    const std::filesystem::path& output_folder,
+    const std::vector<std::string>& patch_jsons);
 
 } // namespace Reservoir
 

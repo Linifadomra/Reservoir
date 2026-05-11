@@ -141,8 +141,8 @@ static void finalize_blo(BLO& blo)
 
 std::vector<PatchResult> process_layout(
     const fs::path& layout_folder,
-    const fs::path& patch_folder,
-    const fs::path& output_folder)
+    const fs::path& output_folder,
+    const std::vector<std::string>& patch_jsons)
 {
     std::unordered_map<std::string, BLO> blo_map;
 
@@ -179,13 +179,6 @@ std::vector<PatchResult> process_layout(
         }
     }
 
-    std::vector<fs::path> json_paths;
-    for (const auto& entry : fs::directory_iterator(patch_folder)) {
-        if (entry.is_regular_file() &&
-            to_lower(entry.path().extension().string()) == ".json")
-            json_paths.push_back(entry.path());
-    }
-
     std::unordered_map<std::string, GCArc*> open_arcs;
     std::unordered_map<std::string, std::vector<uint8_t>> arc_buffers;
 
@@ -214,19 +207,14 @@ std::vector<PatchResult> process_layout(
 
     std::vector<PatchResult> results;
 
-    for (const auto& json_path : json_paths) {
-        std::string json_text;
-        try { json_text = read_text(json_path); }
-        catch (const std::exception& e) {
-            std::cerr << "cannot read patch " << json_path.filename()
-                      << ": " << e.what() << "\n";
-            continue;
-        }
+    for (size_t patch_idx = 0; patch_idx < patch_jsons.size(); ++patch_idx) {
+        const std::string& json_text = patch_jsons[patch_idx];
+        const std::string patch_label = "patch[" + std::to_string(patch_idx) + "]";
 
         PatchDocument patch;
         try { patch = parse_patch_document(json_text); }
         catch (const std::exception& e) {
-            std::cerr << "bad patch json " << json_path.filename()
+            std::cerr << "bad patch json " << patch_label
                       << ": " << e.what() << "\n";
             continue;
         }
@@ -235,7 +223,7 @@ std::vector<PatchResult> process_layout(
         if (it == blo_map.end())
             it = blo_map.find(to_lower(patch.header.blo_file));
         if (it == blo_map.end()) {
-            std::cerr << "patch " << json_path.filename()
+            std::cerr << "patch " << patch_label
                       << " targets unknown blo '" << patch.header.blo_file << "'\n";
             continue;
         }
@@ -244,7 +232,7 @@ std::vector<PatchResult> process_layout(
 
         try { apply_patch(blo, patch); }
         catch (const std::exception& e) {
-            std::cerr << "patch failed " << json_path.filename()
+            std::cerr << "patch failed " << patch_label
                       << ": " << e.what() << "\n";
             continue;
         }
@@ -254,7 +242,7 @@ std::vector<PatchResult> process_layout(
         std::vector<uint8_t> out_bytes;
         try { out_bytes = serialize_blo(blo); }
         catch (const std::exception& e) {
-            std::cerr << "serialize failed after patch " << json_path.filename()
+            std::cerr << "serialize failed after patch " << patch_label
                       << ": " << e.what() << "\n";
             continue;
         }
