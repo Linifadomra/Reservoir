@@ -30,6 +30,37 @@ def _hexdump(offset: int, data: bytes, width: int = 16) -> None:
         asc_part = "".join(chr(b) if 32 <= b < 127 else "." for b in chunk)
         print(f"  {offset + i:#010x}  {hex_part:<48}  {asc_part}")
 
+def _parse_elements(data: bytes, base_offset: int) -> list[dict]:
+    """Walk ELEMENTS and return a list of node records with type, tag, offset, size."""
+    f = BytesIO(data)
+    nodes = []
+    size = len(data)
+
+    def read_tag():
+        return f.read(4).decode("ascii", errors="replace")
+
+    def read_u32():
+        return int.from_bytes(f.read(4), "big")
+
+    def read_str8():
+        return f.read(8).decode("ascii", errors="replace").rstrip("\x00")
+
+    while f.tell() < size:
+        start = f.tell()
+        tag = read_tag()
+        if tag in ("", "\x00\x00\x00\x00"):
+            break
+        block_size = read_u32()
+        if tag in ("BGN1", "END1", "EXT1"):
+            nodes.append({"type": tag, "tag": "", "offset": base_offset + start, "size": block_size})
+            continue
+        f.read(8)
+        info_tag = f.read(8).decode("ascii", errors="replace").rstrip("\x00")
+        f.seek(start + block_size)
+        nodes.append({"type": tag, "tag": info_tag, "offset": base_offset + start, "size": block_size})
+
+    return nodes
+
 def _compare_region(name: str, py_bytes: bytes, cpp_bytes: bytes, offset: int) -> bool:
     """Print a diff of a region. Returns True if identical."""
     if py_bytes == cpp_bytes:
@@ -55,6 +86,20 @@ def _compare_region(name: str, py_bytes: bytes, cpp_bytes: bytes, offset: int) -
     _hexdump(offset + lo, py_bytes[lo:hi_py])
     print(f"     --- cpp ({len(cpp_bytes)} bytes) ---")
     _hexdump(offset + lo, cpp_bytes[lo:hi_cpp])
+
+    if name == "ELEMENTS":
+        try:
+            py_nodes  = _parse_elements(py_bytes, offset)
+            cpp_nodes = _parse_elements(cpp_bytes, offset)
+            print(f"\n     Node walk:")
+            print(f"     {'#':>4}  {'type':<6}  {'py tag':<12}  {'py offset':<12}  {'cpp tag':<12}  {'cpp offset':<12}  match?")
+            for i in range(max(len(py_nodes), len(cpp_nodes))):
+                pn = py_nodes[i]  if i < len(py_nodes)  else {"type":"<?>","tag":"<MISSING>","offset":0}
+                cn = cpp_nodes[i] if i < len(cpp_nodes) else {"type":"<?>","tag":"<MISSING>","offset":0}
+                match = "✓" if pn["tag"] == cn["tag"] and pn["type"] == cn["type"] else "✗"
+                print(f"     {i:>4}  {pn['type']:<6}  {pn['tag']:<12}  {pn['offset']:#010x}  {cn['tag']:<12}  {cn['offset']:#010x}  {match}")
+        except Exception as e:
+            print(f"     (could not parse elements: {e})")
     return False
 
 _MAT1_OFFSET_NAMES = [
