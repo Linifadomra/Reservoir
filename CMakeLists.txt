@@ -26,6 +26,8 @@ endif()
 if(RESERVOIR_SHARED)
     add_library(Reservoir SHARED
         src/blo/blo.cpp
+        src/brlyt/brlyt.cpp
+        src/brlan/brlan.cpp
         src/patch/patch.cpp
         src/mat1/mat1.cpp
         src/reservoir.cpp
@@ -36,6 +38,8 @@ if(RESERVOIR_SHARED)
 else()
     add_library(Reservoir STATIC
         src/blo/blo.cpp
+        src/brlyt/brlyt.cpp
+        src/brlan/brlan.cpp
         src/patch/patch.cpp
         src/mat1/mat1.cpp
         src/reservoir.cpp
