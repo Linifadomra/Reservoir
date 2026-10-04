@@ -59,7 +59,7 @@ struct CloneResult {
     std::vector<std::pair<std::string, std::string>> renamed;
 };
 
-CloneResult cloneSubtree(Document& doc, const std::string& sourceName, const RenameRules& rules);
+CloneResult cloneSubtree(Document& doc, const std::string& sourceName, const RenameRules& rules, const std::string& parentName = "");
 
 } // namespace Reservoir::Brlyt
 

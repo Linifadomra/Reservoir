@@ -215,7 +215,7 @@ std::pair<size_t, size_t> subtreeRange(const Document& doc, size_t paneIndex) {
     return {paneIndex, end};
 }
 
-CloneResult cloneSubtree(Document& doc, const std::string& sourceName, const RenameRules& rules) {
+CloneResult cloneSubtree(Document& doc, const std::string& sourceName, const RenameRules& rules, const std::string& parentName) {
     const size_t source = findPane(doc, sourceName);
     if (source == kNoPane) {
         throw std::runtime_error("brlyt: source pane not found: " + sourceName);
@@ -262,8 +262,35 @@ CloneResult cloneSubtree(Document& doc, const std::string& sourceName, const Ren
         setPaneName(chunk, name);
     }
 
-    doc.chunks.insert(doc.chunks.begin() + end, copy.begin(), copy.end());
-    result.index = end;
+    size_t insertAt = end;
+    if (!parentName.empty()) {
+        const size_t parent = findPane(doc, parentName);
+        if (parent == kNoPane) {
+            throw std::runtime_error("brlyt: parent pane not found: " + parentName);
+        }
+
+        const auto [parentBegin, parentEnd] = subtreeRange(doc, parent);
+        if (parent >= begin && parent < end) {
+            throw std::runtime_error("brlyt: parent pane lies inside the cloned subtree: " + parentName);
+        }
+
+        if (parentEnd == parentBegin + 1) {
+            Chunk open;
+            open.tag          = "pas1";
+            open.littleEndian = doc.littleEndian;
+            Chunk close;
+            close.tag          = "pae1";
+            close.littleEndian = doc.littleEndian;
+            copy.insert(copy.begin(), open);
+            copy.push_back(close);
+            insertAt = parentEnd;
+        } else {
+            insertAt = parentEnd - 1;
+        }
+    }
+
+    doc.chunks.insert(doc.chunks.begin() + insertAt, copy.begin(), copy.end());
+    result.index = insertAt;
     return result;
 }
 

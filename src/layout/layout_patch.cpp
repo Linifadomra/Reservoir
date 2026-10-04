@@ -30,6 +30,7 @@ struct PaneSet {
 
 struct CloneOp {
     std::string          source;
+    std::string          parent;
     Names                rename;
     std::vector<PaneSet> set;
 };
@@ -66,6 +67,7 @@ PaneSet parsePaneSet(const Json& json) {
 CloneOp parseClone(const Json& json) {
     CloneOp op;
     op.source = json.at("source").get<std::string>();
+    op.parent = json.value("parent", std::string());
     for (const Json& rule : json.at("rename")) {
         op.rename.emplace_back(rule.at("from").get<std::string>(), rule.at("to").get<std::string>());
     }
@@ -136,7 +138,7 @@ std::optional<std::vector<uint8_t>> LayoutPatches::patch_layout(
                 doc = Brlyt::parse(std::vector<uint8_t>(data, data + size));
             }
             for (const CloneOp& op : patch.clones) {
-                const Brlyt::CloneResult clone = Brlyt::cloneSubtree(*doc, op.source, op.rename);
+                const Brlyt::CloneResult clone = Brlyt::cloneSubtree(*doc, op.source, op.rename, op.parent);
                 names.insert(names.end(), clone.renamed.begin(), clone.renamed.end());
                 for (const PaneSet& set : op.set) {
                     applySet(*doc, set);
