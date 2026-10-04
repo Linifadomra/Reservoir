@@ -7,25 +7,25 @@ namespace Reservoir::Brlyt {
 
 namespace {
 
-constexpr size_t   kFileHeaderMinSize = 0x10;
-constexpr uint16_t kBigEndianMark     = 0xFEFF;
+constexpr size_t kFileHeaderMinSize = 0x10;
 
-uint16_t readU16(const uint8_t* p) { return static_cast<uint16_t>((p[0] << 8) | p[1]); }
-
-uint32_t readU32(const uint8_t* p) {
-    return (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16) | (static_cast<uint32_t>(p[2]) << 8) | p[3];
+std::string reversed(std::string value) {
+    return std::string(value.rbegin(), value.rend());
 }
 
-void writeU16(std::vector<uint8_t>& out, uint16_t v) {
-    out.push_back(static_cast<uint8_t>(v >> 8));
-    out.push_back(static_cast<uint8_t>(v));
+std::string readTag(const uint8_t* p, bool littleEndian) {
+    std::string tag(reinterpret_cast<const char*>(p), 4);
+    return littleEndian ? reversed(tag) : tag;
 }
 
-void writeU32(std::vector<uint8_t>& out, uint32_t v) {
-    out.push_back(static_cast<uint8_t>(v >> 24));
-    out.push_back(static_cast<uint8_t>(v >> 16));
-    out.push_back(static_cast<uint8_t>(v >> 8));
-    out.push_back(static_cast<uint8_t>(v));
+void appendU16(std::vector<uint8_t>& out, uint16_t v, bool littleEndian) {
+    out.resize(out.size() + 2);
+    writeU16(&out[out.size() - 2], v, littleEndian);
+}
+
+void appendU32(std::vector<uint8_t>& out, uint32_t v, bool littleEndian) {
+    out.resize(out.size() + 4);
+    writeU32(&out[out.size() - 4], v, littleEndian);
 }
 
 void requirePane(const Chunk& chunk) {
@@ -36,21 +36,57 @@ void requirePane(const Chunk& chunk) {
 
 } // namespace
 
-Document parse(const std::vector<uint8_t>& data) {
-    if (data.size() < kFileHeaderMinSize || (std::memcmp(data.data(), "RLYT", 4) != 0 && std::memcmp(data.data(), "RLAN", 4) != 0)) {
-        throw std::runtime_error("brlyt: missing RLYT or RLAN signature");
+uint16_t readU16(const uint8_t* p, bool le) {
+    return le ? static_cast<uint16_t>((p[1] << 8) | p[0]) : static_cast<uint16_t>((p[0] << 8) | p[1]);
+}
+
+uint32_t readU32(const uint8_t* p, bool le) {
+    if (le) {
+        return (static_cast<uint32_t>(p[3]) << 24) | (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[1]) << 8) | p[0];
     }
-    if (readU16(&data[4]) != kBigEndianMark) {
-        throw std::runtime_error("brlyt: only big-endian files are supported");
+    return (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16) | (static_cast<uint32_t>(p[2]) << 8) | p[3];
+}
+
+void writeU16(uint8_t* p, uint16_t v, bool le) {
+    p[le ? 1 : 0] = static_cast<uint8_t>(v >> 8);
+    p[le ? 0 : 1] = static_cast<uint8_t>(v);
+}
+
+void writeU32(uint8_t* p, uint32_t v, bool le) {
+    for (int i = 0; i < 4; i++) {
+        p[le ? i : 3 - i] = static_cast<uint8_t>(v >> (8 * i));
+    }
+}
+
+Document parse(const std::vector<uint8_t>& data) {
+    if (data.size() < kFileHeaderMinSize) {
+        throw std::runtime_error("brlyt: file too small");
     }
 
     Document doc;
-    doc.magic.assign(reinterpret_cast<const char*>(data.data()), 4);
-    doc.version = readU16(&data[6]);
+    const std::string signature(reinterpret_cast<const char*>(data.data()), 4);
+    for (const char* known : {"RLYT", "RLAN"}) {
+        if (signature == known) {
+            doc.magic = known;
+        } else if (signature == reversed(known)) {
+            doc.magic        = known;
+            doc.littleEndian = true;
+        }
+    }
+    if (signature != doc.magic && signature != reversed(doc.magic)) {
+        throw std::runtime_error("brlyt: missing RLYT or RLAN signature");
+    }
 
-    const uint32_t fileSize   = readU32(&data[8]);
-    const uint16_t headerSize = readU16(&data[0xC]);
-    const uint16_t blockCount = readU16(&data[0xE]);
+    const bool le = doc.littleEndian;
+    if (readU16(&data[4], le) != 0xFEFF) {
+        throw std::runtime_error("brlyt: byte order mark does not match signature");
+    }
+
+    doc.version = readU16(&data[6], le);
+
+    const uint32_t fileSize   = readU32(&data[8], le);
+    const uint16_t headerSize = readU16(&data[0xC], le);
+    const uint16_t blockCount = readU16(&data[0xE], le);
 
     if (fileSize != data.size()) {
         throw std::runtime_error("brlyt: file size field does not match data length");
@@ -65,13 +101,14 @@ Document parse(const std::vector<uint8_t>& data) {
             throw std::runtime_error("brlyt: truncated chunk header");
         }
 
-        const uint32_t size = readU32(&data[pos + 4]);
+        const uint32_t size = readU32(&data[pos + 4], le);
         if (size < kChunkHeaderSize || pos + size > data.size()) {
             throw std::runtime_error("brlyt: bad chunk size");
         }
 
         Chunk chunk;
-        chunk.tag.assign(reinterpret_cast<const char*>(&data[pos]), 4);
+        chunk.tag          = readTag(&data[pos], le);
+        chunk.littleEndian = le;
         chunk.body.assign(data.begin() + pos + kChunkHeaderSize, data.begin() + pos + size);
         doc.chunks.push_back(std::move(chunk));
         pos += size;
@@ -85,25 +122,25 @@ Document parse(const std::vector<uint8_t>& data) {
 }
 
 std::vector<uint8_t> serialize(const Document& doc) {
+    const bool le = doc.littleEndian;
+
     std::vector<uint8_t> out;
-    out.insert(out.end(), doc.magic.begin(), doc.magic.end());
-    writeU16(out, kBigEndianMark);
-    writeU16(out, doc.version);
-    writeU32(out, 0);
-    writeU16(out, kFileHeaderMinSize);
-    writeU16(out, static_cast<uint16_t>(doc.chunks.size()));
+    const std::string magic = le ? reversed(doc.magic) : doc.magic;
+    out.insert(out.end(), magic.begin(), magic.end());
+    appendU16(out, 0xFEFF, le);
+    appendU16(out, doc.version, le);
+    appendU32(out, 0, le);
+    appendU16(out, kFileHeaderMinSize, le);
+    appendU16(out, static_cast<uint16_t>(doc.chunks.size()), le);
 
     for (const Chunk& chunk : doc.chunks) {
-        out.insert(out.end(), chunk.tag.begin(), chunk.tag.end());
-        writeU32(out, static_cast<uint32_t>(chunk.body.size() + kChunkHeaderSize));
+        const std::string tag = le ? reversed(chunk.tag) : chunk.tag;
+        out.insert(out.end(), tag.begin(), tag.end());
+        appendU32(out, static_cast<uint32_t>(chunk.body.size() + kChunkHeaderSize), le);
         out.insert(out.end(), chunk.body.begin(), chunk.body.end());
     }
 
-    const uint32_t total = static_cast<uint32_t>(out.size());
-    out[8]  = static_cast<uint8_t>(total >> 24);
-    out[9]  = static_cast<uint8_t>(total >> 16);
-    out[10] = static_cast<uint8_t>(total >> 8);
-    out[11] = static_cast<uint8_t>(total);
+    writeU32(&out[8], static_cast<uint32_t>(out.size()), le);
     return out;
 }
 
@@ -129,7 +166,7 @@ void setPaneName(Chunk& chunk, const std::string& name) {
 
 float getPaneFloat(const Chunk& chunk, size_t offset) {
     requirePane(chunk);
-    const uint32_t bits = readU32(&chunk.body[offset - kChunkHeaderSize]);
+    const uint32_t bits = readU32(&chunk.body[offset - kChunkHeaderSize], chunk.littleEndian);
     float value;
     std::memcpy(&value, &bits, sizeof(value));
     return value;
@@ -139,11 +176,7 @@ void setPaneFloat(Chunk& chunk, size_t offset, float value) {
     requirePane(chunk);
     uint32_t bits;
     std::memcpy(&bits, &value, sizeof(bits));
-    uint8_t* dst = &chunk.body[offset - kChunkHeaderSize];
-    dst[0] = static_cast<uint8_t>(bits >> 24);
-    dst[1] = static_cast<uint8_t>(bits >> 16);
-    dst[2] = static_cast<uint8_t>(bits >> 8);
-    dst[3] = static_cast<uint8_t>(bits);
+    writeU32(&chunk.body[offset - kChunkHeaderSize], bits, chunk.littleEndian);
 }
 
 size_t findPane(const Document& doc, const std::string& name) {

@@ -28,6 +28,7 @@ if(RESERVOIR_SHARED)
         src/blo/blo.cpp
         src/brlyt/brlyt.cpp
         src/brlan/brlan.cpp
+        src/layout/layout_patch.cpp
         src/patch/patch.cpp
         src/mat1/mat1.cpp
         src/reservoir.cpp
@@ -40,6 +41,7 @@ else()
         src/blo/blo.cpp
         src/brlyt/brlyt.cpp
         src/brlan/brlan.cpp
+        src/layout/layout_patch.cpp
         src/patch/patch.cpp
         src/mat1/mat1.cpp
         src/reservoir.cpp

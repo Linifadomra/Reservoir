@@ -13,24 +13,6 @@ constexpr size_t kPaiCountOffset      = 0xE;
 constexpr size_t kPaiTableOffsetField = 0x10;
 constexpr size_t kContentNameLength   = 20;
 
-uint32_t readU32(const uint8_t* p) {
-    return (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16) | (static_cast<uint32_t>(p[2]) << 8) | p[3];
-}
-
-uint16_t readU16(const uint8_t* p) { return static_cast<uint16_t>((p[0] << 8) | p[1]); }
-
-void writeU32(uint8_t* p, uint32_t v) {
-    p[0] = static_cast<uint8_t>(v >> 24);
-    p[1] = static_cast<uint8_t>(v >> 16);
-    p[2] = static_cast<uint8_t>(v >> 8);
-    p[3] = static_cast<uint8_t>(v);
-}
-
-void writeU16(uint8_t* p, uint16_t v) {
-    p[0] = static_cast<uint8_t>(v >> 8);
-    p[1] = static_cast<uint8_t>(v);
-}
-
 struct ContentSpan {
     std::string name;
     size_t      begin;
@@ -60,21 +42,23 @@ size_t cloneTracks(Brlyt::Document& doc, const NamePairs& names) {
         throw std::runtime_error("brlan: no pai1 chunk");
     }
 
+    const bool le = pai->littleEndian;
+
     std::vector<uint8_t> chunk(Brlyt::kChunkHeaderSize, 0);
     chunk.insert(chunk.end(), pai->body.begin(), pai->body.end());
     if (chunk.size() < kPaiTableOffsetField + 4) {
         throw std::runtime_error("brlan: pai1 too small");
     }
 
-    const uint16_t count       = readU16(&chunk[kPaiCountOffset]);
-    const uint32_t tableOffset = readU32(&chunk[kPaiTableOffsetField]);
+    const uint16_t count       = Brlyt::readU16(&chunk[kPaiCountOffset], le);
+    const uint32_t tableOffset = Brlyt::readU32(&chunk[kPaiTableOffsetField], le);
     if (tableOffset + static_cast<size_t>(count) * 4 > chunk.size()) {
         throw std::runtime_error("brlan: content table out of range");
     }
 
     std::vector<uint32_t> offsets(count);
     for (uint16_t i = 0; i < count; i++) {
-        offsets[i] = readU32(&chunk[tableOffset + i * 4]);
+        offsets[i] = Brlyt::readU32(&chunk[tableOffset + i * 4], le);
     }
 
     std::vector<ContentSpan> spans;
@@ -121,7 +105,7 @@ size_t cloneTracks(Brlyt::Document& doc, const NamePairs& names) {
     rebuilt.insert(rebuilt.end(), chunk.begin() + tableEnd, chunk.end());
 
     for (uint16_t i = 0; i < count; i++) {
-        writeU32(&rebuilt[tableOffset + i * 4], offsets[i] + tableShift);
+        Brlyt::writeU32(&rebuilt[tableOffset + i * 4], offsets[i] + tableShift, le);
     }
 
     for (size_t n = 0; n < added; n++) {
@@ -130,10 +114,10 @@ size_t cloneTracks(Brlyt::Document& doc, const NamePairs& names) {
         rebuilt.insert(rebuilt.end(), chunk.begin() + source.begin, chunk.begin() + source.end);
         std::memset(&rebuilt[at], 0, kContentNameLength);
         std::memcpy(&rebuilt[at], planned[n].name.data(), planned[n].name.size());
-        writeU32(&rebuilt[tableOffset + (count + n) * 4], static_cast<uint32_t>(at));
+        Brlyt::writeU32(&rebuilt[tableOffset + (count + n) * 4], static_cast<uint32_t>(at), le);
     }
 
-    writeU16(&rebuilt[kPaiCountOffset], static_cast<uint16_t>(count + added));
+    Brlyt::writeU16(&rebuilt[kPaiCountOffset], static_cast<uint16_t>(count + added), le);
 
     pai->body.assign(rebuilt.begin() + Brlyt::kChunkHeaderSize, rebuilt.end());
     return added;
