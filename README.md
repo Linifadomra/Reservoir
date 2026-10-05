@@ -1,2 +1,2 @@
 # Reservoir
-BLO editor library for GC
+BLO and Layout editor library for GC / WII
