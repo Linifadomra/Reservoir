@@ -7,8 +7,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(RESERVOIR_SHARED "Build Reservoir as a shared library" OFF)
 option(RESERVOIR_BUILD_BINARY "Build Reservoir as a CLI tool" OFF)
+option(RESERVOIR_BUILD_VIEWER "Build the Reservoir layout viewer" OFF)
 
-if(RESERVOIR_BUILD_BINARY) 
+if(RESERVOIR_BUILD_BINARY OR RESERVOIR_BUILD_VIEWER)
     include(FetchContent)
     FetchContent_Declare(
         Confluence
@@ -29,6 +30,7 @@ if(RESERVOIR_SHARED)
         src/brlyt/brlyt.cpp
         src/brlan/brlan.cpp
         src/layout/layout_patch.cpp
+        src/layout/layout_view.cpp
         src/patch/patch.cpp
         src/mat1/mat1.cpp
         src/reservoir.cpp
@@ -42,6 +44,7 @@ else()
         src/brlyt/brlyt.cpp
         src/brlan/brlan.cpp
         src/layout/layout_patch.cpp
+        src/layout/layout_view.cpp
         src/patch/patch.cpp
         src/mat1/mat1.cpp
         src/reservoir.cpp
@@ -83,4 +86,8 @@ add_library(Reservoir::Reservoir ALIAS Reservoir)
 
 if(RESERVOIR_BUILD_BINARY)
     add_subdirectory(cli)
+endif()
+
+if(RESERVOIR_BUILD_VIEWER)
+    add_subdirectory(viewer)
 endif()
