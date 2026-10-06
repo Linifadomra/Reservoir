@@ -126,6 +126,7 @@ struct ElementNode {
 
 struct BLO {
     std::string  name;
+    bool         little_endian = false;
     uint8_t      tag[4];
     uint8_t      type[4];
     uint32_t     size;

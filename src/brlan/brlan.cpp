@@ -1,4 +1,5 @@
 #include "brlan/brlan.hpp"
+#include "common/endian.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -50,15 +51,15 @@ size_t cloneTracks(Brlyt::Document& doc, const NamePairs& names) {
         throw std::runtime_error("brlan: pai1 too small");
     }
 
-    const uint16_t count       = Brlyt::readU16(&chunk[kPaiCountOffset], le);
-    const uint32_t tableOffset = Brlyt::readU32(&chunk[kPaiTableOffsetField], le);
+    const uint16_t count       = Endian::readU16(&chunk[kPaiCountOffset], le);
+    const uint32_t tableOffset = Endian::readU32(&chunk[kPaiTableOffsetField], le);
     if (tableOffset + static_cast<size_t>(count) * 4 > chunk.size()) {
         throw std::runtime_error("brlan: content table out of range");
     }
 
     std::vector<uint32_t> offsets(count);
     for (uint16_t i = 0; i < count; i++) {
-        offsets[i] = Brlyt::readU32(&chunk[tableOffset + i * 4], le);
+        offsets[i] = Endian::readU32(&chunk[tableOffset + i * 4], le);
     }
 
     std::vector<ContentSpan> spans;
@@ -105,7 +106,7 @@ size_t cloneTracks(Brlyt::Document& doc, const NamePairs& names) {
     rebuilt.insert(rebuilt.end(), chunk.begin() + tableEnd, chunk.end());
 
     for (uint16_t i = 0; i < count; i++) {
-        Brlyt::writeU32(&rebuilt[tableOffset + i * 4], offsets[i] + tableShift, le);
+        Endian::writeU32(&rebuilt[tableOffset + i * 4], offsets[i] + tableShift, le);
     }
 
     for (size_t n = 0; n < added; n++) {
@@ -114,10 +115,10 @@ size_t cloneTracks(Brlyt::Document& doc, const NamePairs& names) {
         rebuilt.insert(rebuilt.end(), chunk.begin() + source.begin, chunk.begin() + source.end);
         std::memset(&rebuilt[at], 0, kContentNameLength);
         std::memcpy(&rebuilt[at], planned[n].name.data(), planned[n].name.size());
-        Brlyt::writeU32(&rebuilt[tableOffset + (count + n) * 4], static_cast<uint32_t>(at), le);
+        Endian::writeU32(&rebuilt[tableOffset + (count + n) * 4], static_cast<uint32_t>(at), le);
     }
 
-    Brlyt::writeU16(&rebuilt[kPaiCountOffset], static_cast<uint16_t>(count + added), le);
+    Endian::writeU16(&rebuilt[kPaiCountOffset], static_cast<uint16_t>(count + added), le);
 
     pai->body.assign(rebuilt.begin() + Brlyt::kChunkHeaderSize, rebuilt.end());
     return added;

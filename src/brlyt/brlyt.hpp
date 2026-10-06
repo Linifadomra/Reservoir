@@ -25,10 +25,6 @@ struct Document {
 };
 
 constexpr size_t kChunkHeaderSize = 8;
-uint16_t readU16(const uint8_t* p, bool littleEndian);
-uint32_t readU32(const uint8_t* p, bool littleEndian);
-void     writeU16(uint8_t* p, uint16_t value, bool littleEndian);
-void     writeU32(uint8_t* p, uint32_t value, bool littleEndian);
 
 constexpr size_t kPaneNameOffset  = 0xC;
 constexpr size_t kPaneNameLength  = 16;

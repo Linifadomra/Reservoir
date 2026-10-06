@@ -1,4 +1,5 @@
 #include "brlyt/brlyt.hpp"
+#include "common/endian.hpp"
 
 #include <cstring>
 #include <stdexcept>
@@ -20,12 +21,12 @@ std::string readTag(const uint8_t* p, bool littleEndian) {
 
 void appendU16(std::vector<uint8_t>& out, uint16_t v, bool littleEndian) {
     out.resize(out.size() + 2);
-    writeU16(&out[out.size() - 2], v, littleEndian);
+    Endian::writeU16(&out[out.size() - 2], v, littleEndian);
 }
 
 void appendU32(std::vector<uint8_t>& out, uint32_t v, bool littleEndian) {
     out.resize(out.size() + 4);
-    writeU32(&out[out.size() - 4], v, littleEndian);
+    Endian::writeU32(&out[out.size() - 4], v, littleEndian);
 }
 
 void requirePane(const Chunk& chunk) {
@@ -35,28 +36,6 @@ void requirePane(const Chunk& chunk) {
 }
 
 } // namespace
-
-uint16_t readU16(const uint8_t* p, bool le) {
-    return le ? static_cast<uint16_t>((p[1] << 8) | p[0]) : static_cast<uint16_t>((p[0] << 8) | p[1]);
-}
-
-uint32_t readU32(const uint8_t* p, bool le) {
-    if (le) {
-        return (static_cast<uint32_t>(p[3]) << 24) | (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[1]) << 8) | p[0];
-    }
-    return (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16) | (static_cast<uint32_t>(p[2]) << 8) | p[3];
-}
-
-void writeU16(uint8_t* p, uint16_t v, bool le) {
-    p[le ? 1 : 0] = static_cast<uint8_t>(v >> 8);
-    p[le ? 0 : 1] = static_cast<uint8_t>(v);
-}
-
-void writeU32(uint8_t* p, uint32_t v, bool le) {
-    for (int i = 0; i < 4; i++) {
-        p[le ? i : 3 - i] = static_cast<uint8_t>(v >> (8 * i));
-    }
-}
 
 Document parse(const std::vector<uint8_t>& data) {
     if (data.size() < kFileHeaderMinSize) {
@@ -78,15 +57,15 @@ Document parse(const std::vector<uint8_t>& data) {
     }
 
     const bool le = doc.littleEndian;
-    if (readU16(&data[4], le) != 0xFEFF) {
+    if (Endian::readU16(&data[4], le) != 0xFEFF) {
         throw std::runtime_error("brlyt: byte order mark does not match signature");
     }
 
-    doc.version = readU16(&data[6], le);
+    doc.version = Endian::readU16(&data[6], le);
 
-    const uint32_t fileSize   = readU32(&data[8], le);
-    const uint16_t headerSize = readU16(&data[0xC], le);
-    const uint16_t blockCount = readU16(&data[0xE], le);
+    const uint32_t fileSize   = Endian::readU32(&data[8], le);
+    const uint16_t headerSize = Endian::readU16(&data[0xC], le);
+    const uint16_t blockCount = Endian::readU16(&data[0xE], le);
 
     if (fileSize != data.size()) {
         throw std::runtime_error("brlyt: file size field does not match data length");
@@ -101,7 +80,7 @@ Document parse(const std::vector<uint8_t>& data) {
             throw std::runtime_error("brlyt: truncated chunk header");
         }
 
-        const uint32_t size = readU32(&data[pos + 4], le);
+        const uint32_t size = Endian::readU32(&data[pos + 4], le);
         if (size < kChunkHeaderSize || pos + size > data.size()) {
             throw std::runtime_error("brlyt: bad chunk size");
         }
@@ -140,7 +119,7 @@ std::vector<uint8_t> serialize(const Document& doc) {
         out.insert(out.end(), chunk.body.begin(), chunk.body.end());
     }
 
-    writeU32(&out[8], static_cast<uint32_t>(out.size()), le);
+    Endian::writeU32(&out[8], static_cast<uint32_t>(out.size()), le);
     return out;
 }
 
@@ -166,7 +145,7 @@ void setPaneName(Chunk& chunk, const std::string& name) {
 
 float getPaneFloat(const Chunk& chunk, size_t offset) {
     requirePane(chunk);
-    const uint32_t bits = readU32(&chunk.body[offset - kChunkHeaderSize], chunk.littleEndian);
+    const uint32_t bits = Endian::readU32(&chunk.body[offset - kChunkHeaderSize], chunk.littleEndian);
     float value;
     std::memcpy(&value, &bits, sizeof(value));
     return value;
@@ -176,7 +155,7 @@ void setPaneFloat(Chunk& chunk, size_t offset, float value) {
     requirePane(chunk);
     uint32_t bits;
     std::memcpy(&bits, &value, sizeof(bits));
-    writeU32(&chunk.body[offset - kChunkHeaderSize], bits, chunk.littleEndian);
+    Endian::writeU32(&chunk.body[offset - kChunkHeaderSize], bits, chunk.littleEndian);
 }
 
 size_t findPane(const Document& doc, const std::string& name) {
