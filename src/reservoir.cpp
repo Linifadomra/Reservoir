@@ -166,6 +166,16 @@ bool BloPatches::empty() const
     return impl_->documents.empty();
 }
 
+bool BloPatches::targets(const std::string& name) const
+{
+    const std::string key = to_lower(name);
+    for (const PatchDocument& doc : impl_->documents) {
+        if (to_lower(target_name(doc.header)) == key)
+            return true;
+    }
+    return false;
+}
+
 std::string BloPatches::source_name(const std::string& name) const
 {
     const std::string key = to_lower(name);

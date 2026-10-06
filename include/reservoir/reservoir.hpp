@@ -65,6 +65,8 @@ public:
 
     bool empty() const;
 
+    bool targets(const std::string& name) const;
+
     std::string source_name(const std::string& name) const;
 
     std::optional<std::vector<uint8_t>> patch(
