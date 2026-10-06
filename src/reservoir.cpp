@@ -121,9 +121,9 @@ static void load_blos_from_arc(const fs::path& arc_path,
 
 static void finalize_blo(BLO& blo)
 {
-    bool needs_ext1 = !blo.padding.empty() &&
-        blo.padding[0] == 'E' && blo.padding[1] == 'X' &&
-        blo.padding[2] == 'T' && blo.padding[3] == '1';
+    const char* ext1 = blo.little_endian ? "1TXE" : "EXT1";
+    bool needs_ext1 = blo.padding.size() >= 4 &&
+        std::memcmp(blo.padding.data(), ext1, 4) == 0;
     if (!needs_ext1)
         blo.padding.clear();
 
@@ -141,6 +141,81 @@ static void finalize_blo(BLO& blo)
         sz = static_cast<uint32_t>(tmp.size());
     }
     blo.size = sz;
+}
+
+static const std::string& target_name(const PatchHeader& header)
+{
+    return header.new_filename.empty() ? header.blo_file : header.new_filename;
+}
+
+struct BloPatches::Impl {
+    std::vector<PatchDocument> documents;
+};
+
+BloPatches::BloPatches() : impl_(std::make_unique<Impl>()) {}
+
+BloPatches::~BloPatches() = default;
+
+void BloPatches::add(const std::string& json_text)
+{
+    impl_->documents.push_back(parse_patch_document(json_text));
+}
+
+bool BloPatches::empty() const
+{
+    return impl_->documents.empty();
+}
+
+bool BloPatches::targets(const std::string& name) const
+{
+    const std::string key = to_lower(name);
+    for (const PatchDocument& doc : impl_->documents) {
+        if (to_lower(target_name(doc.header)) == key)
+            return true;
+    }
+    return false;
+}
+
+std::string BloPatches::source_name(const std::string& name) const
+{
+    const std::string key = to_lower(name);
+    for (const PatchDocument& doc : impl_->documents) {
+        if (to_lower(target_name(doc.header)) == key)
+            return doc.header.blo_file;
+    }
+    return name;
+}
+
+std::optional<std::vector<uint8_t>> BloPatches::patch(
+    const std::string& name, const uint8_t* data, size_t size) const
+{
+    const std::string key = to_lower(name);
+    std::optional<BLO> blo;
+
+    for (const PatchDocument& doc : impl_->documents) {
+        if (to_lower(target_name(doc.header)) != key)
+            continue;
+
+        try {
+            if (!blo)
+                blo = parse_blo(std::vector<uint8_t>(data, data + size));
+            apply_patch(*blo, doc);
+        } catch (const std::exception& e) {
+            std::cerr << "blo patch failed for " << name << ": " << e.what() << "\n";
+            return std::nullopt;
+        }
+    }
+
+    if (!blo)
+        return std::nullopt;
+
+    try {
+        finalize_blo(*blo);
+        return serialize_blo(*blo);
+    } catch (const std::exception& e) {
+        std::cerr << "blo serialize failed for " << name << ": " << e.what() << "\n";
+        return std::nullopt;
+    }
 }
 
 std::vector<PatchResult> process_layout(
