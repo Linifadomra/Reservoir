@@ -53,6 +53,32 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
+class BloPatches {
+public:
+    BloPatches();
+    ~BloPatches();
+
+    BloPatches(const BloPatches&)            = delete;
+    BloPatches& operator=(const BloPatches&) = delete;
+
+    void add(const std::string& json_text);
+
+    bool empty() const;
+
+    bool targets(const std::string& name) const;
+
+    std::string source_name(const std::string& name) const;
+
+    std::optional<std::vector<uint8_t>> patch(
+        const std::string& name,
+        const uint8_t*     data,
+        size_t             size) const;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
 } // namespace Reservoir
 
 #endif

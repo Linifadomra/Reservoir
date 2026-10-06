@@ -335,80 +335,80 @@ struct MAT1Section {
     std::vector<uint8_t> end_padding;
 };
 
-void parse_mat1_offsets (const uint8_t* base, size_t* pos, MAT1SectionOffsets&);
-void serialize_mat1_offsets(std::vector<uint8_t>& out, const MAT1SectionOffsets&);
+void parse_mat1_offsets (const uint8_t* base, size_t* pos, MAT1SectionOffsets&, bool le);
+void serialize_mat1_offsets(std::vector<uint8_t>& out, const MAT1SectionOffsets&, bool le);
 
-void parse_mat_init_data_section    (const uint8_t* base, const MAT1SectionOffsets&, MatInitDataSection&);
-void serialize_mat_init_data_section(std::vector<uint8_t>& out, const MatInitDataSection&);
+void parse_mat_init_data_section    (const uint8_t* base, const MAT1SectionOffsets&, MatInitDataSection&, bool le);
+void serialize_mat_init_data_section(std::vector<uint8_t>& out, const MatInitDataSection&, bool le);
 
-void parse_mat_init_idx_section    (const uint8_t* base, const MAT1SectionOffsets&, MatInitIdxSection&);
-void serialize_mat_init_idx_section(std::vector<uint8_t>& out, const MatInitIdxSection&);
+void parse_mat_init_idx_section    (const uint8_t* base, const MAT1SectionOffsets&, MatInitIdxSection&, bool le);
+void serialize_mat_init_idx_section(std::vector<uint8_t>& out, const MatInitIdxSection&, bool le);
 
-void parse_mat_name_table_section    (const uint8_t* base, const MAT1SectionOffsets&, MatNameTableSection&);
-void serialize_mat_name_table_section(std::vector<uint8_t>& out, const MatNameTableSection&);
+void parse_mat_name_table_section    (const uint8_t* base, const MAT1SectionOffsets&, MatNameTableSection&, bool le);
+void serialize_mat_name_table_section(std::vector<uint8_t>& out, const MatNameTableSection&, bool le);
 
-void parse_ind_init_data_section    (const uint8_t* base, const MAT1SectionOffsets&, IndInitDataSection&);
-void serialize_ind_init_data_section(std::vector<uint8_t>& out, const IndInitDataSection&);
+void parse_ind_init_data_section    (const uint8_t* base, const MAT1SectionOffsets&, IndInitDataSection&, bool le);
+void serialize_ind_init_data_section(std::vector<uint8_t>& out, const IndInitDataSection&, bool le);
 
-void parse_cull_mode_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, CullModeSection&);
-void serialize_cull_mode_section(std::vector<uint8_t>& out, const CullModeSection&);
+void parse_cull_mode_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, CullModeSection&, bool le);
+void serialize_cull_mode_section(std::vector<uint8_t>& out, const CullModeSection&, bool le);
 
-void parse_mat_color_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, MatColorSection&);
-void serialize_mat_color_section(std::vector<uint8_t>& out, const MatColorSection&);
+void parse_mat_color_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, MatColorSection&, bool le);
+void serialize_mat_color_section(std::vector<uint8_t>& out, const MatColorSection&, bool le);
 
-void parse_color_chan_num_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, ColorChanNumSection&);
-void serialize_color_chan_num_section(std::vector<uint8_t>& out, const ColorChanNumSection&);
+void parse_color_chan_num_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, ColorChanNumSection&, bool le);
+void serialize_color_chan_num_section(std::vector<uint8_t>& out, const ColorChanNumSection&, bool le);
 
-void parse_color_chan_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, ColorChanInfoSection&);
-void serialize_color_chan_info_section(std::vector<uint8_t>& out, const ColorChanInfoSection&);
+void parse_color_chan_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, ColorChanInfoSection&, bool le);
+void serialize_color_chan_info_section(std::vector<uint8_t>& out, const ColorChanInfoSection&, bool le);
 
-void parse_tex_gen_num_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TexGenNumSection&);
-void serialize_tex_gen_num_section(std::vector<uint8_t>& out, const TexGenNumSection&);
+void parse_tex_gen_num_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TexGenNumSection&, bool le);
+void serialize_tex_gen_num_section(std::vector<uint8_t>& out, const TexGenNumSection&, bool le);
 
-void parse_tex_coord_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TexCoordInfoSection&);
-void serialize_tex_coord_info_section(std::vector<uint8_t>& out, const TexCoordInfoSection&);
+void parse_tex_coord_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TexCoordInfoSection&, bool le);
+void serialize_tex_coord_info_section(std::vector<uint8_t>& out, const TexCoordInfoSection&, bool le);
 
-void parse_tex_mtx_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TexMtxInfoSection&);
-void serialize_tex_mtx_info_section(std::vector<uint8_t>& out, const TexMtxInfoSection&);
+void parse_tex_mtx_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TexMtxInfoSection&, bool le);
+void serialize_tex_mtx_info_section(std::vector<uint8_t>& out, const TexMtxInfoSection&, bool le);
 
-void parse_tex_no_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TexNoSection&);
-void serialize_tex_no_section(std::vector<uint8_t>& out, const TexNoSection&);
+void parse_tex_no_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TexNoSection&, bool le);
+void serialize_tex_no_section(std::vector<uint8_t>& out, const TexNoSection&, bool le);
 
-void parse_font_no_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, FontNoSection&);
-void serialize_font_no_section(std::vector<uint8_t>& out, const FontNoSection&);
+void parse_font_no_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, FontNoSection&, bool le);
+void serialize_font_no_section(std::vector<uint8_t>& out, const FontNoSection&, bool le);
 
-void parse_tev_order_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevOrderInfoSection&);
-void serialize_tev_order_info_section(std::vector<uint8_t>& out, const TevOrderInfoSection&);
+void parse_tev_order_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevOrderInfoSection&, bool le);
+void serialize_tev_order_info_section(std::vector<uint8_t>& out, const TevOrderInfoSection&, bool le);
 
-void parse_tev_color_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevColorSection&);
-void serialize_tev_color_section(std::vector<uint8_t>& out, const TevColorSection&);
+void parse_tev_color_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevColorSection&, bool le);
+void serialize_tev_color_section(std::vector<uint8_t>& out, const TevColorSection&, bool le);
 
-void parse_tev_k_color_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevKColorSection&);
-void serialize_tev_k_color_section(std::vector<uint8_t>& out, const TevKColorSection&);
+void parse_tev_k_color_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevKColorSection&, bool le);
+void serialize_tev_k_color_section(std::vector<uint8_t>& out, const TevKColorSection&, bool le);
 
-void parse_tev_stage_num_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevStageNumSection&);
-void serialize_tev_stage_num_section(std::vector<uint8_t>& out, const TevStageNumSection&);
+void parse_tev_stage_num_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevStageNumSection&, bool le);
+void serialize_tev_stage_num_section(std::vector<uint8_t>& out, const TevStageNumSection&, bool le);
 
-void parse_tev_stage_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevStageInfoSection&);
-void serialize_tev_stage_info_section(std::vector<uint8_t>& out, const TevStageInfoSection&);
+void parse_tev_stage_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevStageInfoSection&, bool le);
+void serialize_tev_stage_info_section(std::vector<uint8_t>& out, const TevStageInfoSection&, bool le);
 
-void parse_tev_swap_mode_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevSwapModeInfoSection&);
-void serialize_tev_swap_mode_info_section(std::vector<uint8_t>& out, const TevSwapModeInfoSection&);
+void parse_tev_swap_mode_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevSwapModeInfoSection&, bool le);
+void serialize_tev_swap_mode_info_section(std::vector<uint8_t>& out, const TevSwapModeInfoSection&, bool le);
 
-void parse_tev_swap_mode_tbl_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevSwapModeTblSection&);
-void serialize_tev_swap_mode_tbl_section(std::vector<uint8_t>& out, const TevSwapModeTblSection&);
+void parse_tev_swap_mode_tbl_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, TevSwapModeTblSection&, bool le);
+void serialize_tev_swap_mode_tbl_section(std::vector<uint8_t>& out, const TevSwapModeTblSection&, bool le);
 
-void parse_alpha_comp_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, AlphaCompInfoSection&);
-void serialize_alpha_comp_info_section(std::vector<uint8_t>& out, const AlphaCompInfoSection&);
+void parse_alpha_comp_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, AlphaCompInfoSection&, bool le);
+void serialize_alpha_comp_info_section(std::vector<uint8_t>& out, const AlphaCompInfoSection&, bool le);
 
-void parse_blend_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, BlendInfoSection&);
-void serialize_blend_info_section(std::vector<uint8_t>& out, const BlendInfoSection&);
+void parse_blend_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, BlendInfoSection&, bool le);
+void serialize_blend_info_section(std::vector<uint8_t>& out, const BlendInfoSection&, bool le);
 
-void parse_dither_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, uint32_t mat1_section_size, DitherSection&);
-void serialize_dither_section(std::vector<uint8_t>& out, const DitherSection&);
+void parse_dither_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, uint32_t mat1_section_size, DitherSection&, bool le);
+void serialize_dither_section(std::vector<uint8_t>& out, const DitherSection&, bool le);
 
-void parse_mat1_section    (const uint8_t* buf, size_t* pos_inout, MAT1Section&);
-void serialize_mat1_section(std::vector<uint8_t>& out, const MAT1Section&);
+void parse_mat1_section    (const uint8_t* buf, size_t* pos_inout, MAT1Section&, bool le);
+void serialize_mat1_section(std::vector<uint8_t>& out, const MAT1Section&, bool le);
 
 }
 

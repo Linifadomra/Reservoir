@@ -256,11 +256,20 @@ static ElementNode make_tbx2_node(const PatchEntry& e)
     return n;
 }
 
-static void set_element_mat_no(ElementNode& node, const MAT1Section& mat1)
+static bool is_added_element(const std::vector<PatchEntry>& entries, const std::string& tag)
+{
+    for (const auto& entry : entries) {
+        if (entry.action == PatchAction::Add && strip_prefix(entry.element_name) == strip_prefix(tag))
+            return true;
+    }
+    return false;
+}
+
+static void set_element_mat_no(ElementNode& node, const std::vector<PatchEntry>& entries, const MAT1Section& mat1)
 {
     if (node.type == ElementNode::Type::PAN2) {
         for (auto& child : as_pan2(node).children)
-            set_element_mat_no(child, mat1);
+            set_element_mat_no(child, entries, mat1);
         return;
     }
 
@@ -270,6 +279,9 @@ static void set_element_mat_no(ElementNode& node, const MAT1Section& mat1)
             : (node.type == ElementNode::Type::TBX2)
                 ? as_tbx2(node).base.info_tag
                 : std::get<WIN2Node>(node.node).base.info_tag;
+
+    if (!is_added_element(entries, target))
+        return;
 
     for (size_t i = 0; i < mat1.mat_name_table.mat_names.size(); ++i) {
         const std::string& mat_name = mat1.mat_name_table.mat_names[i];
@@ -528,9 +540,15 @@ void apply_patch(BLO& blo, const PatchDocument& patch)
         }
     }
 
-    set_element_mat_no(root, blo.mat1);
+    set_element_mat_no(root, patch.entries, blo.mat1);
     set_new_mat_no(root, patch.entries, blo.mat1);
     blo.blocks = 4 + calc_blocks(root);
+
+    const bool adds_pic2 = std::any_of(patch.entries.begin(), patch.entries.end(), [](const PatchEntry& entry) {
+        return entry.action == PatchAction::Add && entry.type == "PIC2";
+    });
+    if (!adds_pic2)
+        return;
 
     std::vector<ElementNode*> all_pan2;
     collect_pan2_parents_with_pic2(root, all_pan2);
