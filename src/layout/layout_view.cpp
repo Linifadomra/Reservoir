@@ -3,6 +3,8 @@
 #include "blo/blo.hpp"
 #include "brlyt/brlyt.hpp"
 
+#include "common/endian.hpp"
+
 #include <confluence/rarc.h>
 #include <confluence/yaz0.h>
 
@@ -14,6 +16,7 @@
 #include <cstring>
 #include <fstream>
 #include <iterator>
+#include <filesystem>
 #include <stdexcept>
 
 namespace fs = std::filesystem;
@@ -212,7 +215,7 @@ Layout view_blo(const std::string& name, const std::vector<uint8_t>& data) {
 }
 
 float read_float(const uint8_t* p, bool le) {
-    const uint32_t bits = Brlyt::readU32(p, le);
+    const uint32_t bits = Endian::readU32(p, le);
     float          v;
     std::memcpy(&v, &bits, sizeof(v));
     return v;
@@ -256,7 +259,7 @@ void apply_material(const std::vector<BrlytMaterial>& materials, uint16_t index,
 std::string utf16_text(const uint8_t* p, size_t bytes, bool le) {
     std::string out;
     for (size_t i = 0; i + 1 < bytes; i += 2) {
-        const uint16_t c = Brlyt::readU16(p + i, le);
+        const uint16_t c = Endian::readU16(p + i, le);
         if (c == 0) {
             break;
         }
@@ -287,30 +290,30 @@ Layout view_brlyt(const std::string& name, const std::vector<uint8_t>& data) {
         const uint8_t* b = chunk.body.data();
 
         if (chunk.tag == "lyt1" && chunk.body.size() >= 12) {
-            uint32_t w = Brlyt::readU32(b + 4, le);
-            uint32_t h = Brlyt::readU32(b + 8, le);
+            uint32_t w = Endian::readU32(b + 4, le);
+            uint32_t h = Endian::readU32(b + 8, le);
             std::memcpy(&out.width, &w, 4);
             std::memcpy(&out.height, &h, 4);
         } else if (chunk.tag == "mat1" && chunk.body.size() >= 4) {
-            const uint16_t count = Brlyt::readU16(b, le);
+            const uint16_t count = Endian::readU16(b, le);
             for (uint16_t i = 0; i < count; i++) {
                 const size_t entry = 4 + size_t(i) * 4;
                 if (entry + 4 > chunk.body.size()) {
                     break;
                 }
-                const size_t off = Brlyt::readU32(b + entry, le);
+                const size_t off = Endian::readU32(b + entry, le);
                 BrlytMaterial material;
                 if (off >= Brlyt::kChunkHeaderSize && off - Brlyt::kChunkHeaderSize + 0x44 <= chunk.body.size()) {
                     const size_t   m     = off - Brlyt::kChunkHeaderSize;
-                    const uint32_t flags = Brlyt::readU32(b + m + 0x3C, le);
+                    const uint32_t flags = Endian::readU32(b + m + 0x3C, le);
                     if ((flags & 3) > 0) {
-                        material.texture = Brlyt::readU16(b + m + 0x40, le);
+                        material.texture = Endian::readU16(b + m + 0x40, le);
                         material.wrap_s  = b[m + 0x42];
                         material.wrap_t  = b[m + 0x43];
                     }
                     auto color = [&](size_t at) {
-                        return pack_color(Brlyt::readU16(b + at, le), Brlyt::readU16(b + at + 2, le), Brlyt::readU16(b + at + 4, le),
-                                          Brlyt::readU16(b + at + 6, le));
+                        return pack_color(Endian::readU16(b + at, le), Endian::readU16(b + at + 2, le), Endian::readU16(b + at + 4, le),
+                                          Endian::readU16(b + at + 6, le));
                     };
                     const uint32_t srt_count = (flags >> 4) & 3;
                     const size_t   srt_at    = m + 0x40 + size_t(flags & 3) * 4;
@@ -326,14 +329,14 @@ Layout view_brlyt(const std::string& name, const std::vector<uint8_t>& data) {
                 materials.push_back(material);
             }
         } else if (chunk.tag == "txl1" && chunk.body.size() >= 8) {
-            const uint16_t count = Brlyt::readU16(b, le);
+            const uint16_t count = Endian::readU16(b, le);
             const uint32_t base  = 4;
             for (uint16_t i = 0; i < count; i++) {
                 const size_t entry = base + size_t(i) * 8;
                 if (entry + 4 > chunk.body.size()) {
                     break;
                 }
-                const size_t off = base + Brlyt::readU32(b + entry, le);
+                const size_t off = base + Endian::readU32(b + entry, le);
                 if (off < chunk.body.size()) {
                     out.textures.emplace_back(reinterpret_cast<const char*>(b + off));
                 }
@@ -361,11 +364,11 @@ Layout view_brlyt(const std::string& name, const std::vector<uint8_t>& data) {
             pane.uv = {Vec2{0, 1}, Vec2{1, 1}, Vec2{1, 0}, Vec2{0, 0}};
 
             if (chunk.tag == "pic1" && chunk.body.size() >= header + 20) {
-                pane.color = Brlyt::readU32(b + header, le);
-                pane.details.push_back({"Corner colors", hex_color(pane.color) + " " + hex_color(Brlyt::readU32(b + header + 4, le)) + " " +
-                                                              hex_color(Brlyt::readU32(b + header + 8, le)) + " " +
-                                                              hex_color(Brlyt::readU32(b + header + 12, le))});
-                apply_material(materials, Brlyt::readU16(b + header + 16, le), pane);
+                pane.color = Endian::readU32(b + header, le);
+                pane.details.push_back({"Corner colors", hex_color(pane.color) + " " + hex_color(Endian::readU32(b + header + 4, le)) + " " +
+                                                              hex_color(Endian::readU32(b + header + 8, le)) + " " +
+                                                              hex_color(Endian::readU32(b + header + 12, le))});
+                apply_material(materials, Endian::readU16(b + header + 16, le), pane);
 
                 const uint8_t sets = b[header + 18];
                 if (sets > 0 && chunk.body.size() >= header + 20 + 32) {
@@ -373,12 +376,12 @@ Layout view_brlyt(const std::string& name, const std::vector<uint8_t>& data) {
                     auto at = [&](int i) { return Vec2{read_float(t + i * 8, le), read_float(t + i * 8 + 4, le)}; };
                     pane.uv = {at(2), at(3), at(1), at(0)};
                 }
-                if (const uint16_t index = Brlyt::readU16(b + header + 16, le); index < materials.size()) {
+                if (const uint16_t index = Endian::readU16(b + header + 16, le); index < materials.size()) {
                     apply_srt(pane, materials[index]);
                 }
             } else if (chunk.tag == "txt1" && chunk.body.size() >= header + 0x28) {
-                const uint32_t str_off = Brlyt::readU32(b + header + 12, le);
-                pane.color     = Brlyt::readU32(b + header + 16, le);
+                const uint32_t str_off = Endian::readU32(b + header + 12, le);
+                pane.color     = Endian::readU32(b + header + 16, le);
                 pane.font_size = {read_float(b + header + 0x18, le), read_float(b + header + 0x1C, le)};
                 pane.details.push_back({"Text color", hex_color(pane.color)});
                 pane.details.push_back({"Font size", number(pane.font_size.x) + " x " + number(pane.font_size.y)});
