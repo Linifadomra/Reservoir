@@ -763,7 +763,8 @@ void serialize_alpha_comp_info_section(std::vector<uint8_t>& out,
 }
 
 void parse_blend_info_section(const uint8_t* base, const MAT1SectionOffsets& offsets,
-                               const MatInitDataSection& init, BlendInfoSection& out, bool le)
+                               const MatInitDataSection& init, uint32_t section_size,
+                               BlendInfoSection& out, bool le)
 {
     if (offsets.blend_info == 0) return;
     size_t pos = offsets.blend_info;
@@ -775,6 +776,8 @@ void parse_blend_info_section(const uint8_t* base, const MAT1SectionOffsets& off
         e.op         = read_u8(base, &pos);
     }
     uint32_t nxt = next_valid_offset(offsets, offsets.blend_info);
+    if (nxt == 0) nxt = section_size;
+    if (nxt < pos) nxt = static_cast<uint32_t>(pos);
     out.padding.assign(base + pos, base + nxt);
 }
 
@@ -840,7 +843,7 @@ void parse_mat1_section(const uint8_t* buf, size_t* pos_inout, MAT1Section& out,
     parse_tev_swap_mode_info_section(base, out.offsets, out.mat_init, out.tev_swap_mode_info, le);
     parse_tev_swap_mode_tbl_section (base, out.offsets, out.mat_init, out.tev_swap_mode_tbl, le);
     parse_alpha_comp_info_section   (base, out.offsets, out.mat_init, out.alpha_comp_info, le);
-    parse_blend_info_section        (base, out.offsets, out.mat_init, out.blend_info, le);
+    parse_blend_info_section        (base, out.offsets, out.mat_init, out.section_size, out.blend_info, le);
     parse_dither_section            (base, out.offsets, out.mat_init, out.section_size, out.dither, le);
 
     *pos_inout += out.section_size;
