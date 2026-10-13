@@ -401,7 +401,7 @@ void serialize_tev_swap_mode_tbl_section(std::vector<uint8_t>& out, const TevSwa
 void parse_alpha_comp_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, AlphaCompInfoSection&, bool le);
 void serialize_alpha_comp_info_section(std::vector<uint8_t>& out, const AlphaCompInfoSection&, bool le);
 
-void parse_blend_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, BlendInfoSection&, bool le);
+void parse_blend_info_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, uint32_t section_size, BlendInfoSection&, bool le);
 void serialize_blend_info_section(std::vector<uint8_t>& out, const BlendInfoSection&, bool le);
 
 void parse_dither_section    (const uint8_t* base, const MAT1SectionOffsets&, const MatInitDataSection&, uint32_t mat1_section_size, DitherSection&, bool le);
