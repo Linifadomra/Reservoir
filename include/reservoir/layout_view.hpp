@@ -37,7 +37,7 @@ struct Pane {
     uint32_t color = 0;
 
     int                 texture = -1;
-    int                 animIndex = -1;
+    int                 anim_index = -1;
     uint32_t            black   = 0x000000FF;
     uint32_t            white   = 0xFFFFFFFF;
     uint8_t             wrap_s  = 1;
