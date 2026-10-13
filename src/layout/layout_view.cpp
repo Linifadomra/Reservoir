@@ -160,7 +160,7 @@ void blo_walk(ElementNode& node, const MAT1Section& mat1, int parent, int depth,
     pane.translate = {base.translate_x, base.translate_y};
     pane.scale    = {base.scale_x, base.scale_y};
     pane.rotate   = base.rotate_z;
-    pane.animIndex = base.bck_idx == 0xFFFF ? -1 : static_cast<int>(base.bck_idx);
+    pane.anim_index = base.bck_idx == 0xFFFF ? -1 : static_cast<int>(base.bck_idx);
 
     pane.uv = {Vec2{0, 0}, Vec2{1, 0}, Vec2{1, 1}, Vec2{0, 1}};
 
